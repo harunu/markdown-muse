@@ -8,6 +8,11 @@ import SearchResults from "./pages/SearchResults";
 import PropertyDetail from "./pages/PropertyDetail";
 import AdminIndex from "./pages/admin/AdminIndex";
 import AdminListings from "./pages/admin/AdminListings";
+import AdminImport from "./pages/admin/AdminImport";
+import AdminHistory from "./pages/admin/AdminHistory";
+import AdminQuality from "./pages/admin/AdminQuality";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminSettings from "./pages/admin/AdminSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +29,11 @@ const App = () => (
           <Route path="/ilan/:id" element={<PropertyDetail />} />
           <Route path="/admin" element={<AdminIndex />} />
           <Route path="/admin/ilanlar" element={<AdminListings />} />
+          <Route path="/admin/import" element={<AdminImport />} />
+          <Route path="/admin/gecmis" element={<AdminHistory />} />
+          <Route path="/admin/kalite" element={<AdminQuality />} />
+          <Route path="/admin/analiz" element={<AdminAnalytics />} />
+          <Route path="/admin/ayarlar" element={<AdminSettings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
