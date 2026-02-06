@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -27,104 +27,99 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Search,
   Filter,
   MoreHorizontal,
   Eye,
-  Edit,
   Bot,
   Trash2,
   Download,
   ChevronLeft,
   ChevronRight,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { motion } from "framer-motion";
-
-const listings = [
-  {
-    id: "KDK-001",
-    title: "2+1 Daire",
-    location: "Kadıköy, İstanbul",
-    price: 12500000,
-    area: 95,
-    source: "CSV",
-    status: "active",
-    createdAt: "29 Oca 2025",
-  },
-  {
-    id: "BSK-002",
-    title: "3+1 Villa",
-    location: "Beşiktaş, İstanbul",
-    price: 45200000,
-    area: 280,
-    source: "CSV",
-    status: "active",
-    createdAt: "25 Oca 2025",
-  },
-  {
-    id: "USK-003",
-    title: "1+1 Daire",
-    location: "Üsküdar, İstanbul",
-    price: 6500000,
-    area: 55,
-    source: "Manuel",
-    status: "pending",
-    createdAt: "20 Oca 2025",
-  },
-  {
-    id: "ATS-004",
-    title: "4+1 Rezidans",
-    location: "Ataşehir, İstanbul",
-    price: 32000000,
-    area: 185,
-    source: "CSV",
-    status: "active",
-    createdAt: "18 Oca 2025",
-  },
-  {
-    id: "MLT-005",
-    title: "2+1 Daire",
-    location: "Maltepe, İstanbul",
-    price: 8900000,
-    area: 85,
-    source: "CSV",
-    status: "inactive",
-    createdAt: "15 Oca 2025",
-  },
-];
+import { useProperties, useDeleteProperty } from "@/hooks/useApi";
+import { useToast } from "@/hooks/use-toast";
+import { IlanOzet } from "@/types/api";
 
 const formatPrice = (price: number) => {
   if (price >= 1000000) {
-    return `₺${(price / 1000000).toFixed(1)}M`;
+    return `${(price / 1000000).toFixed(1)}M TL`;
   }
-  return `₺${new Intl.NumberFormat("tr-TR").format(price)}`;
+  return `${new Intl.NumberFormat("tr-TR").format(price)} TL`;
 };
 
 const StatusBadge = ({ status }: { status: string }) => {
-  const styles = {
-    active: "bg-success/10 text-success border-success/20",
-    pending: "bg-warning/10 text-warning border-warning/20",
-    inactive: "bg-destructive/10 text-destructive border-destructive/20",
+  const styles: Record<string, string> = {
+    aktif: "bg-success/10 text-success border-success/20",
+    taslak: "bg-warning/10 text-warning border-warning/20",
+    pasif: "bg-destructive/10 text-destructive border-destructive/20",
   };
 
-  const labels = {
-    active: "Aktif",
-    pending: "Beklemede",
-    inactive: "Pasif",
+  const labels: Record<string, string> = {
+    aktif: "Aktif",
+    taslak: "Taslak",
+    pasif: "Pasif",
   };
 
   return (
-    <Badge variant="outline" className={styles[status as keyof typeof styles]}>
-      {labels[status as keyof typeof labels]}
+    <Badge variant="outline" className={styles[status] || styles.aktif}>
+      {labels[status] || status}
     </Badge>
   );
 };
 
 const ListingsPage = () => {
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const toggleSelection = (id: string) => {
+  // Filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [cityFilter, setCityFilter] = useState<string>();
+  const [districtFilter, setDistrictFilter] = useState<string>();
+  const [statusFilter, setStatusFilter] = useState<string>();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  // Selection state
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+  // Delete dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+
+  // Build query params
+  const queryParams: Record<string, unknown> = {
+    sayfa: currentPage,
+    sayfa_boyutu: pageSize,
+  };
+  if (searchQuery) queryParams.arama = searchQuery;
+  if (cityFilter) queryParams.sehir = cityFilter;
+  if (districtFilter) queryParams.ilce = districtFilter;
+  if (statusFilter) queryParams.durum = statusFilter;
+
+  // API hooks
+  const { data, isLoading, error, refetch } = useProperties(queryParams);
+  const deleteMutation = useDeleteProperty();
+
+  const listings = data?.sonuclar || [];
+  const totalItems = data?.toplam || 0;
+  const totalPages = data?.toplam_sayfa || 1;
+
+  // Selection handlers
+  const toggleSelection = (id: number) => {
     setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
@@ -138,6 +133,37 @@ const ListingsPage = () => {
     }
   };
 
+  // Delete handler
+  const handleDelete = async () => {
+    if (!deleteId) return;
+
+    try {
+      await deleteMutation.mutateAsync(deleteId);
+      toast({ title: "Ilan silindi" });
+      setSelectedIds(prev => prev.filter(id => id !== deleteId));
+    } catch {
+      toast({ title: "Silme hatasi", variant: "destructive" });
+    } finally {
+      setDeleteDialogOpen(false);
+      setDeleteId(null);
+    }
+  };
+
+  // Apply filters
+  const applyFilters = () => {
+    setCurrentPage(1);
+    refetch();
+  };
+
+  // Clear filters
+  const clearFilters = () => {
+    setSearchQuery("");
+    setCityFilter(undefined);
+    setDistrictFilter(undefined);
+    setStatusFilter(undefined);
+    setCurrentPage(1);
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -146,7 +172,7 @@ const ListingsPage = () => {
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
       >
-        <h1 className="text-2xl font-semibold text-foreground">İlan Yönetimi</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Ilan Yonetimi</h1>
         <Link to="/import">
           <Button className="gap-2">
             <Download className="w-4 h-4" />
@@ -165,42 +191,46 @@ const ListingsPage = () => {
                 placeholder="Ara..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && applyFilters()}
                 className="pl-9"
               />
             </div>
-            <Select>
+            <Select value={cityFilter} onValueChange={setCityFilter}>
               <SelectTrigger className="w-32">
-                <SelectValue placeholder="Şehir" />
+                <SelectValue placeholder="Sehir" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="istanbul">İstanbul</SelectItem>
+                <SelectItem value="istanbul">Istanbul</SelectItem>
                 <SelectItem value="ankara">Ankara</SelectItem>
-                <SelectItem value="izmir">İzmir</SelectItem>
+                <SelectItem value="izmir">Izmir</SelectItem>
               </SelectContent>
             </Select>
-            <Select>
+            <Select value={districtFilter} onValueChange={setDistrictFilter}>
               <SelectTrigger className="w-32">
-                <SelectValue placeholder="İlçe" />
+                <SelectValue placeholder="Ilce" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="kadikoy">Kadıköy</SelectItem>
-                <SelectItem value="besiktas">Beşiktaş</SelectItem>
-                <SelectItem value="uskudar">Üsküdar</SelectItem>
+                <SelectItem value="kadikoy">Kadikoy</SelectItem>
+                <SelectItem value="besiktas">Besiktas</SelectItem>
+                <SelectItem value="uskudar">Uskudar</SelectItem>
               </SelectContent>
             </Select>
-            <Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-32">
                 <SelectValue placeholder="Durum" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="active">Aktif</SelectItem>
-                <SelectItem value="pending">Beklemede</SelectItem>
-                <SelectItem value="inactive">Pasif</SelectItem>
+                <SelectItem value="aktif">Aktif</SelectItem>
+                <SelectItem value="taslak">Taslak</SelectItem>
+                <SelectItem value="pasif">Pasif</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2" onClick={applyFilters}>
               <Filter className="w-4 h-4" />
               Filtrele
+            </Button>
+            <Button variant="ghost" onClick={clearFilters}>
+              Temizle
             </Button>
           </div>
         </CardContent>
@@ -214,7 +244,7 @@ const ListingsPage = () => {
           className="bg-primary/10 rounded-lg p-3 flex items-center justify-between"
         >
           <span className="text-sm font-medium">
-            Seçili: {selectedIds.length} ilan
+            Secili: {selectedIds.length} ilan
           </span>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" className="gap-2">
@@ -223,9 +253,17 @@ const ListingsPage = () => {
             </Button>
             <Button variant="outline" size="sm" className="gap-2">
               <Download className="w-4 h-4" />
-              Dışa Aktar
+              Disa Aktar
             </Button>
-            <Button variant="outline" size="sm" className="gap-2 text-destructive hover:text-destructive">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 text-destructive hover:text-destructive"
+              onClick={() => {
+                // For bulk delete, would need a separate mutation
+                toast({ title: "Toplu silme henüz desteklenmiyor", variant: "destructive" });
+              }}
+            >
               <Trash2 className="w-4 h-4" />
               Sil
             </Button>
@@ -236,119 +274,194 @@ const ListingsPage = () => {
       {/* Table */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">
-                  <Checkbox
-                    checked={selectedIds.length === listings.length}
-                    onCheckedChange={toggleAll}
-                  />
-                </TableHead>
-                <TableHead>İlan</TableHead>
-                <TableHead>Konum</TableHead>
-                <TableHead>Fiyat</TableHead>
-                <TableHead>Kaynak</TableHead>
-                <TableHead>Durum</TableHead>
-                <TableHead className="w-16">İşlem</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {listings.map((listing) => (
-                <TableRow key={listing.id} className="group">
-                  <TableCell>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-16 text-destructive">
+              <AlertCircle className="w-10 h-10 mb-3" />
+              <p>Ilanlar yüklenirken bir hata olustu.</p>
+              <Button variant="link" onClick={() => refetch()}>
+                Tekrar dene
+              </Button>
+            </div>
+          ) : listings.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <Search className="w-12 h-12 mb-3 opacity-50" />
+              <p className="text-lg font-medium">Ilan bulunamadı</p>
+              <p className="text-sm">Farklı filtrelerle arama yapin</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">
                     <Checkbox
-                      checked={selectedIds.includes(listing.id)}
-                      onCheckedChange={() => toggleSelection(listing.id)}
+                      checked={selectedIds.length === listings.length && listings.length > 0}
+                      onCheckedChange={toggleAll}
                     />
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium text-foreground">{listing.title}</p>
-                      <p className="text-xs text-muted-foreground">ID: {listing.id}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="text-foreground">{listing.location.split(",")[0]}</p>
-                      <p className="text-xs text-muted-foreground">{listing.location.split(",")[1]}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium text-foreground">{formatPrice(listing.price)}</p>
-                      <p className="text-xs text-muted-foreground">{listing.area} m²</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{listing.source}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={listing.status} />
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Eye className="w-4 h-4 mr-2" />
-                          Görüntüle
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Edit className="w-4 h-4 mr-2" />
-                          Düzenle
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Bot className="w-4 h-4 mr-2" />
-                          AI Analiz
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive focus:text-destructive">
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Sil
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+                  </TableHead>
+                  <TableHead>Ilan</TableHead>
+                  <TableHead>Konum</TableHead>
+                  <TableHead>Fiyat</TableHead>
+                  <TableHead>Kaynak</TableHead>
+                  <TableHead>Durum</TableHead>
+                  <TableHead className="w-16">Islem</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {listings.map((listing: IlanOzet) => (
+                  <TableRow key={listing.id} className="group">
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.includes(listing.id)}
+                        onCheckedChange={() => toggleSelection(listing.id)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium text-foreground">{listing.baslik}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {listing.oda_sayisi} - {listing.metrekare || "-"} m2
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="text-foreground">{listing.ilce}</p>
+                        <p className="text-xs text-muted-foreground">{listing.sehir}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium text-foreground">{formatPrice(listing.fiyat)}</p>
+                        {listing.birim_fiyat && (
+                          <p className="text-xs text-muted-foreground">
+                            {formatPrice(listing.birim_fiyat)}/m2
+                          </p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{listing.kaynak}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={listing.durum} />
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => navigate(`/listings/${listing.id}`)}>
+                            <Eye className="w-4 h-4 mr-2" />
+                            Goruntule
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate(`/listings/${listing.id}`)}>
+                            <Bot className="w-4 h-4 mr-2" />
+                            AI Analiz
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => {
+                              setDeleteId(listing.id);
+                              setDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Sil
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <p>Toplam: 12,456 ilan</p>
-        <div className="flex items-center gap-2">
-          <span>Sayfa:</span>
-          <Button variant="outline" size="icon" className="w-8 h-8">
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <Button variant="outline" size="sm" className="min-w-8 h-8">1</Button>
-          <Button variant="ghost" size="sm" className="min-w-8 h-8">2</Button>
-          <Button variant="ghost" size="sm" className="min-w-8 h-8">3</Button>
-          <span>...</span>
-          <Button variant="ghost" size="sm" className="min-w-8 h-8">498</Button>
-          <Button variant="outline" size="icon" className="w-8 h-8">
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-          <Select defaultValue="25">
-            <SelectTrigger className="w-20 h-8">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="10">10</SelectItem>
-              <SelectItem value="25">25</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-              <SelectItem value="100">100</SelectItem>
-            </SelectContent>
-          </Select>
+      {listings.length > 0 && (
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <p>Toplam: {totalItems.toLocaleString("tr-TR")} ilan</p>
+          <div className="flex items-center gap-2">
+            <span>Sayfa:</span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="w-8 h-8"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(p => p - 1)}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <span className="min-w-16 text-center">
+              {currentPage} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="w-8 h-8"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(p => p + 1)}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            <Select
+              value={pageSize.toString()}
+              onValueChange={(v) => {
+                setPageSize(parseInt(v));
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-20 h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ilani silmek istediginize emin misiniz?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bu islem geri alinamaz. Ilan kalici olarak silinecektir.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Iptal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                "Sil"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

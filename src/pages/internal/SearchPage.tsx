@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,95 +28,223 @@ import {
   Star,
   Bot,
   Filter,
-  X,
-  MessageCircle,
   ChevronRight,
   Send,
+  Loader2,
+  AlertCircle,
+  Save,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import property1 from "@/assets/property-1.jpg";
-import property2 from "@/assets/property-2.jpg";
-import property3 from "@/assets/property-3.jpg";
+import { useSearch, useAiChat, useSaveSearch, useAddFavorite, useRemoveFavorite, useFavorites } from "@/hooks/useApi";
+import { IlanOzet, AramaIstegi } from "@/types/api";
+import { useToast } from "@/hooks/use-toast";
 
-const listings = [
-  {
-    id: "1",
-    image: property1,
-    title: "Kadıköy, Caferağa - 2+1 Daire",
-    location: "Kadıköy, İstanbul",
-    rooms: "2+1",
-    area: 95,
-    floor: "5. Kat",
-    age: 3,
-    price: 12500000,
-    pricePerM2: 131578,
-    aiScore: 72,
-    aiComment: "Bölge ortalamasının %5 altında",
-    features: ["Asansör", "Otopark", "Doğalgaz"],
-  },
-  {
-    id: "2",
-    image: property2,
-    title: "Beşiktaş, Bebek - 3+1 Rezidans",
-    location: "Beşiktaş, İstanbul",
-    rooms: "3+1",
-    area: 145,
-    floor: "12. Kat",
-    age: 5,
-    price: 25800000,
-    pricePerM2: 177931,
-    aiScore: 85,
-    aiComment: "Yatırım için ideal lokasyon",
-    features: ["Havuz", "Güvenlik", "Fitness"],
-  },
-  {
-    id: "3",
-    image: property3,
-    title: "Üsküdar, Kuzguncuk - 4+2 Villa",
-    location: "Üsküdar, İstanbul",
-    rooms: "4+2",
-    area: 280,
-    floor: "3 Katlı",
-    age: 8,
-    price: 45000000,
-    pricePerM2: 160714,
-    aiScore: 78,
-    aiComment: "Değer artış potansiyeli yüksek",
-    features: ["Bahçe", "Otopark", "Güvenlik"],
-  },
-];
-
+// Format price with Turkish locale
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat("tr-TR").format(price);
 };
 
+// Calculate unit price
+const getUnitPrice = (price: number, area?: number | null) => {
+  if (!area || area === 0) return null;
+  return Math.round(price / area);
+};
+
+// Turkish property images placeholder
+const getPropertyImage = (index: number) => {
+  const images = [
+    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&h=300&fit=crop",
+  ];
+  return images[index % images.length];
+};
+
+interface Filters {
+  sehir?: string;
+  ilce?: string;
+  min_fiyat?: number;
+  max_fiyat?: number;
+  min_metrekare?: number;
+  max_metrekare?: number;
+  oda_sayisi?: string[];
+}
+
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
 const SearchPage = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedListings, setSelectedListings] = useState<string[]>([]);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
+  const [filters, setFilters] = useState<Filters>({
+    sehir: "istanbul",
+  });
+  const [sortBy, setSortBy] = useState("price-asc");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Results state
+  const [results, setResults] = useState<IlanOzet[]>([]);
+  const [totalResults, setTotalResults] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
+  // Selection state
+  const [selectedListings, setSelectedListings] = useState<number[]>([]);
+
+  // AI Chat state
   const [aiChatOpen, setAiChatOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState([
-    { role: "ai", content: "Bu aramada 45 ilan buldum. Yatırım mı oturum mu düşünüyorsun?" }
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    { role: "assistant", content: "Merhaba! Size emlak aramanızda nasıl yardımcı olabilirim?" }
   ]);
   const [chatInput, setChatInput] = useState("");
+  const [sessionId, setSessionId] = useState<string | undefined>();
 
-  const toggleListingSelection = (id: string) => {
+  // API hooks
+  const searchMutation = useSearch();
+  const aiChatMutation = useAiChat();
+  const saveSearchMutation = useSaveSearch();
+  const addFavoriteMutation = useAddFavorite();
+  const removeFavoriteMutation = useRemoveFavorite();
+  const { data: favorites } = useFavorites();
+
+  // Check if a listing is favorite
+  const isFavorite = (ilanId: number) => {
+    return favorites?.some(f => f.ilan.id === ilanId) ?? false;
+  };
+
+  // Toggle favorite
+  const toggleFavorite = async (ilanId: number) => {
+    try {
+      if (isFavorite(ilanId)) {
+        await removeFavoriteMutation.mutateAsync(ilanId);
+        toast({ title: "Favorilerden kaldirildi" });
+      } else {
+        await addFavoriteMutation.mutateAsync(ilanId);
+        toast({ title: "Favorilere eklendi" });
+      }
+    } catch {
+      toast({ title: "Bir hata olustu", variant: "destructive" });
+    }
+  };
+
+  // Perform search
+  const handleSearch = async (newPage?: number) => {
+    const request: AramaIstegi = {
+      sorgu: searchQuery || undefined,
+      filtreler: {
+        sehir: filters.sehir,
+        ilce: filters.ilce,
+        min_fiyat: filters.min_fiyat,
+        max_fiyat: filters.max_fiyat,
+        min_metrekare: filters.min_metrekare,
+        max_metrekare: filters.max_metrekare,
+        oda_sayisi: filters.oda_sayisi?.[0],
+      },
+      siralama: sortBy,
+      sayfa: newPage || currentPage,
+      sayfa_boyutu: 20,
+    };
+
+    // Clean up undefined values
+    if (request.filtreler) {
+      Object.keys(request.filtreler).forEach(key => {
+        const k = key as keyof typeof request.filtreler;
+        if (request.filtreler![k] === undefined) {
+          delete request.filtreler![k];
+        }
+      });
+    }
+
+    try {
+      const response = await searchMutation.mutateAsync(request);
+      setResults(response.sonuclar);
+      setTotalResults(response.toplam);
+      setTotalPages(response.toplam_sayfa);
+      if (newPage) setCurrentPage(newPage);
+    } catch {
+      toast({
+        title: "Arama hatasi",
+        description: "Arama yapilirken bir hata olustu.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Save current search
+  const handleSaveSearch = async () => {
+    const searchName = searchQuery || `${filters.sehir || "Tüm"} araması`;
+    try {
+      await saveSearchMutation.mutateAsync({
+        sorgu: searchQuery,
+        filtreler: filters,
+        sonuc_sayisi: totalResults,
+        isim: searchName,
+      });
+      toast({ title: "Arama kaydedildi" });
+    } catch {
+      toast({ title: "Kaydetme hatasi", variant: "destructive" });
+    }
+  };
+
+  // Toggle listing selection
+  const toggleListingSelection = (id: number) => {
     setSelectedListings(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
   };
 
-  const handleSendMessage = () => {
-    if (!chatInput.trim()) return;
-    setChatMessages(prev => [...prev, { role: "user", content: chatInput }]);
-    setChatInput("");
-    // Simulate AI response
-    setTimeout(() => {
-      setChatMessages(prev => [...prev, {
-        role: "ai",
-        content: "Yatırım için Üsküdar ve Ataşehir öne çıkıyor. m² fiyatları hala artış potansiyeli taşıyor."
-      }]);
-    }, 1000);
+  // Handle compare
+  const handleCompare = () => {
+    if (selectedListings.length < 2) {
+      toast({ title: "En az 2 ilan seçiniz", variant: "destructive" });
+      return;
+    }
+    navigate(`/compare?ids=${selectedListings.join(",")}`);
   };
+
+  // Send AI chat message
+  const handleSendMessage = async () => {
+    if (!chatInput.trim()) return;
+
+    const userMessage = chatInput;
+    setChatInput("");
+    setChatMessages(prev => [...prev, { role: "user", content: userMessage }]);
+
+    try {
+      const response = await aiChatMutation.mutateAsync({
+        mesaj: userMessage,
+        session_id: sessionId,
+        baglam_tipi: "search",
+        baglam_verisi: {
+          sorgu: searchQuery,
+          filtreler: filters,
+          sonuc_sayisi: totalResults,
+        },
+      });
+
+      setSessionId(response.session_id);
+      setChatMessages(prev => [...prev, { role: "assistant", content: response.yanit }]);
+    } catch {
+      setChatMessages(prev => [...prev, {
+        role: "assistant",
+        content: "Üzgünüm, şu anda yanıt veremiyorum. Lütfen tekrar deneyin."
+      }]);
+    }
+  };
+
+  // Search on mount if query param exists
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q) {
+      setSearchQuery(q);
+      handleSearch();
+    }
+  }, []);
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
@@ -130,11 +259,23 @@ const SearchPage = () => {
             placeholder="Kadıköy'de 15 milyon altı 2+1 daire arıyorum..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch(1)}
             className="pl-14 pr-24 h-12 text-base"
           />
-          <Button className="absolute right-2 gap-2" size="default">
-            Ara
-            <Search className="w-4 h-4" />
+          <Button
+            className="absolute right-2 gap-2"
+            size="default"
+            onClick={() => handleSearch(1)}
+            disabled={searchMutation.isPending}
+          >
+            {searchMutation.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <>
+                Ara
+                <Search className="w-4 h-4" />
+              </>
+            )}
           </Button>
         </div>
       </div>
@@ -153,50 +294,91 @@ const SearchPage = () => {
             <CardContent className="space-y-6">
               {/* City */}
               <div className="space-y-2">
-                <Label>Şehir</Label>
-                <Select defaultValue="istanbul">
+                <Label>Sehir</Label>
+                <Select
+                  value={filters.sehir}
+                  onValueChange={(value) => setFilters(prev => ({ ...prev, sehir: value }))}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Şehir seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="istanbul">İstanbul</SelectItem>
+                    <SelectItem value="istanbul">Istanbul</SelectItem>
                     <SelectItem value="ankara">Ankara</SelectItem>
-                    <SelectItem value="izmir">İzmir</SelectItem>
+                    <SelectItem value="izmir">Izmir</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {/* District */}
               <div className="space-y-2">
-                <Label>İlçe</Label>
-                <Select>
+                <Label>Ilce</Label>
+                <Select
+                  value={filters.ilce}
+                  onValueChange={(value) => setFilters(prev => ({ ...prev, ilce: value }))}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="İlçe seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="kadikoy">Kadıköy</SelectItem>
-                    <SelectItem value="besiktas">Beşiktaş</SelectItem>
-                    <SelectItem value="uskudar">Üsküdar</SelectItem>
+                    <SelectItem value="kadikoy">Kadikoy</SelectItem>
+                    <SelectItem value="besiktas">Besiktas</SelectItem>
+                    <SelectItem value="uskudar">Uskudar</SelectItem>
+                    <SelectItem value="atasehir">Atasehir</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {/* Price Range */}
               <div className="space-y-2">
-                <Label>Fiyat Aralığı</Label>
+                <Label>Fiyat Araligi</Label>
                 <div className="flex gap-2">
-                  <Input placeholder="Min" className="text-sm" />
-                  <Input placeholder="Max" className="text-sm" />
+                  <Input
+                    placeholder="Min"
+                    type="number"
+                    className="text-sm"
+                    value={filters.min_fiyat || ""}
+                    onChange={(e) => setFilters(prev => ({
+                      ...prev,
+                      min_fiyat: e.target.value ? parseInt(e.target.value) : undefined
+                    }))}
+                  />
+                  <Input
+                    placeholder="Max"
+                    type="number"
+                    className="text-sm"
+                    value={filters.max_fiyat || ""}
+                    onChange={(e) => setFilters(prev => ({
+                      ...prev,
+                      max_fiyat: e.target.value ? parseInt(e.target.value) : undefined
+                    }))}
+                  />
                 </div>
               </div>
 
               {/* Rooms */}
               <div className="space-y-3">
-                <Label>Oda Sayısı</Label>
+                <Label>Oda Sayisi</Label>
                 <div className="grid grid-cols-2 gap-2">
-                  {["1+1", "2+1", "3+1", "4+1+"].map((room) => (
+                  {["1+1", "2+1", "3+1", "4+1"].map((room) => (
                     <div key={room} className="flex items-center space-x-2">
-                      <Checkbox id={`room-${room}`} />
+                      <Checkbox
+                        id={`room-${room}`}
+                        checked={filters.oda_sayisi?.includes(room)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setFilters(prev => ({
+                              ...prev,
+                              oda_sayisi: [...(prev.oda_sayisi || []), room]
+                            }));
+                          } else {
+                            setFilters(prev => ({
+                              ...prev,
+                              oda_sayisi: prev.oda_sayisi?.filter(r => r !== room)
+                            }));
+                          }
+                        }}
+                      />
                       <Label htmlFor={`room-${room}`} className="text-sm font-normal cursor-pointer">
                         {room}
                       </Label>
@@ -207,22 +389,40 @@ const SearchPage = () => {
 
               {/* Area Range */}
               <div className="space-y-2">
-                <Label>m² Aralığı</Label>
+                <Label>m2 Araligi</Label>
                 <div className="flex gap-2">
-                  <Input placeholder="Min" className="text-sm" />
-                  <Input placeholder="Max" className="text-sm" />
+                  <Input
+                    placeholder="Min"
+                    type="number"
+                    className="text-sm"
+                    value={filters.min_metrekare || ""}
+                    onChange={(e) => setFilters(prev => ({
+                      ...prev,
+                      min_metrekare: e.target.value ? parseInt(e.target.value) : undefined
+                    }))}
+                  />
+                  <Input
+                    placeholder="Max"
+                    type="number"
+                    className="text-sm"
+                    value={filters.max_metrekare || ""}
+                    onChange={(e) => setFilters(prev => ({
+                      ...prev,
+                      max_metrekare: e.target.value ? parseInt(e.target.value) : undefined
+                    }))}
+                  />
                 </div>
               </div>
 
               {/* Building Age */}
               <div className="space-y-3">
-                <Label>Bina Yaşı: 0-20+</Label>
+                <Label>Bina Yasi: 0-20+</Label>
                 <Slider defaultValue={[0, 20]} max={20} step={1} />
               </div>
 
               {/* Features */}
               <div className="space-y-3">
-                <Label>Özellikler</Label>
+                <Label>Ozellikler</Label>
                 <div className="space-y-2">
                   {["Asansör", "Otopark", "Havuz", "Güvenlik"].map((feature) => (
                     <div key={feature} className="flex items-center space-x-2">
@@ -235,9 +435,23 @@ const SearchPage = () => {
                 </div>
               </div>
 
-              <Button variant="outline" className="w-full">
-                Filtreleri Temizle
-              </Button>
+              <div className="space-y-2">
+                <Button
+                  variant="default"
+                  className="w-full"
+                  onClick={() => handleSearch(1)}
+                  disabled={searchMutation.isPending}
+                >
+                  Filtrele
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setFilters({ sehir: "istanbul" })}
+                >
+                  Filtreleri Temizle
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </aside>
@@ -254,7 +468,7 @@ const SearchPage = () => {
             <SheetHeader>
               <SheetTitle>Filtreler</SheetTitle>
             </SheetHeader>
-            {/* Same filter content for mobile */}
+            {/* Mobile filters would go here - same content */}
           </SheetContent>
         </Sheet>
 
@@ -262,15 +476,31 @@ const SearchPage = () => {
         <div className="flex-1 flex flex-col min-w-0">
           {/* Results Header */}
           <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-muted-foreground">45 sonuç gösteriliyor</p>
+            <div className="flex items-center gap-4">
+              <p className="text-sm text-muted-foreground">
+                {totalResults > 0 ? `${totalResults} sonuç gösteriliyor` : "Arama yapın"}
+              </p>
+              {totalResults > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSaveSearch}
+                  disabled={saveSearchMutation.isPending}
+                  className="gap-1"
+                >
+                  <Save className="w-4 h-4" />
+                  Kaydet
+                </Button>
+              )}
+            </div>
             <div className="flex items-center gap-2">
-              <Select defaultValue="price-asc">
+              <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-36">
                   <SelectValue placeholder="Sırala" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="price-asc">Fiyat ↑</SelectItem>
-                  <SelectItem value="price-desc">Fiyat ↓</SelectItem>
+                  <SelectItem value="price-asc">Fiyat (Artan)</SelectItem>
+                  <SelectItem value="price-desc">Fiyat (Azalan)</SelectItem>
                   <SelectItem value="ai-score">AI Skoru</SelectItem>
                   <SelectItem value="newest">En Yeni</SelectItem>
                 </SelectContent>
@@ -284,8 +514,8 @@ const SearchPage = () => {
               <span className="text-sm font-medium">
                 {selectedListings.length} ilan seçildi
               </span>
-              <Button size="sm" className="gap-2">
-                Karşılaştır
+              <Button size="sm" className="gap-2" onClick={handleCompare}>
+                Karsilastir
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
@@ -293,83 +523,157 @@ const SearchPage = () => {
 
           {/* Results List */}
           <div className="flex-1 overflow-auto space-y-3 pr-1">
-            {listings.map((listing, index) => (
-              <motion.div
-                key={listing.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card className={`hover:shadow-card transition-all cursor-pointer ${
-                  selectedListings.includes(listing.id) ? "ring-2 ring-primary" : ""
-                }`}>
-                  <CardContent className="p-4">
-                    <div className="flex gap-4">
-                      {/* Checkbox */}
-                      <div className="flex items-start pt-1">
-                        <Checkbox
-                          checked={selectedListings.includes(listing.id)}
-                          onCheckedChange={() => toggleListingSelection(listing.id)}
-                        />
-                      </div>
-
-                      {/* Image */}
-                      <div className="w-32 h-24 rounded-lg overflow-hidden shrink-0">
-                        <img
-                          src={listing.image}
-                          alt={listing.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <h3 className="font-semibold text-foreground truncate">{listing.title}</h3>
-                            <p className="text-sm text-muted-foreground flex items-center gap-1">
-                              <MapPin className="w-3.5 h-3.5" />
-                              {listing.location}
-                            </p>
-                          </div>
-                          <Button variant="ghost" size="icon" className="shrink-0">
-                            <Star className="w-5 h-5" />
-                          </Button>
+            {searchMutation.isPending ? (
+              // Loading state
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : searchMutation.isError ? (
+              // Error state
+              <div className="flex flex-col items-center justify-center py-16 text-destructive">
+                <AlertCircle className="w-10 h-10 mb-3" />
+                <p>Arama yapılırken bir hata oluştu.</p>
+                <Button variant="link" onClick={() => handleSearch(1)}>
+                  Tekrar dene
+                </Button>
+              </div>
+            ) : results.length === 0 ? (
+              // Empty state
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                <Search className="w-12 h-12 mb-3 opacity-50" />
+                <p className="text-lg font-medium">Sonuç bulunamadı</p>
+                <p className="text-sm">Farklı kriterlerle aramayı deneyin</p>
+              </div>
+            ) : (
+              // Results
+              results.map((listing, index) => (
+                <motion.div
+                  key={listing.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Card className={`hover:shadow-card transition-all cursor-pointer ${
+                    selectedListings.includes(listing.id) ? "ring-2 ring-primary" : ""
+                  }`}>
+                    <CardContent className="p-4">
+                      <div className="flex gap-4">
+                        {/* Checkbox */}
+                        <div className="flex items-start pt-1">
+                          <Checkbox
+                            checked={selectedListings.includes(listing.id)}
+                            onCheckedChange={() => toggleListingSelection(listing.id)}
+                          />
                         </div>
 
-                        <div className="flex flex-wrap gap-2 mt-2 text-xs text-muted-foreground">
-                          <span>{listing.area} m²</span>
-                          <span>•</span>
-                          <span>{listing.rooms}</span>
-                          <span>•</span>
-                          <span>{listing.floor}</span>
-                          <span>•</span>
-                          <span>{listing.age} yaşında</span>
+                        {/* Image */}
+                        <div
+                          className="w-32 h-24 rounded-lg overflow-hidden shrink-0 cursor-pointer"
+                          onClick={() => navigate(`/listings/${listing.id}`)}
+                        >
+                          <img
+                            src={getPropertyImage(index)}
+                            alt={listing.baslik}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
 
-                        <div className="flex items-center justify-between mt-3">
-                          <div>
-                            <p className="font-semibold text-lg text-foreground">₺{formatPrice(listing.price)}</p>
-                            <p className="text-xs text-muted-foreground">₺{formatPrice(listing.pricePerM2)}/m²</p>
-                          </div>
-
-                          {/* AI Score */}
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1.5 text-sm">
-                              <Bot className="w-4 h-4 text-primary" />
-                              <span className="font-medium">{listing.aiScore}/100</span>
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div
+                              className="cursor-pointer"
+                              onClick={() => navigate(`/listings/${listing.id}`)}
+                            >
+                              <h3 className="font-semibold text-foreground truncate">{listing.baslik}</h3>
+                              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                <MapPin className="w-3.5 h-3.5" />
+                                {listing.ilce}, {listing.sehir}
+                              </p>
                             </div>
-                            <Badge variant="secondary" className="text-xs">
-                              {listing.aiComment}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="shrink-0"
+                              onClick={() => toggleFavorite(listing.id)}
+                            >
+                              <Star className={`w-5 h-5 ${isFavorite(listing.id) ? "fill-warning text-warning" : ""}`} />
+                            </Button>
+                          </div>
+
+                          <div className="flex flex-wrap gap-2 mt-2 text-xs text-muted-foreground">
+                            {listing.metrekare && <span>{listing.metrekare} m2</span>}
+                            {listing.oda_sayisi && (
+                              <>
+                                <span>-</span>
+                                <span>{listing.oda_sayisi}</span>
+                              </>
+                            )}
+                            {listing.bina_yasi !== null && listing.bina_yasi !== undefined && (
+                              <>
+                                <span>-</span>
+                                <span>{listing.bina_yasi} yasinda</span>
+                              </>
+                            )}
+                            <Badge variant="outline" className="text-xs">
+                              {listing.ilan_tipi === "satilik" ? "Satilik" : "Kiralik"}
                             </Badge>
                           </div>
+
+                          <div className="flex items-center justify-between mt-3">
+                            <div>
+                              <p className="font-semibold text-lg text-foreground">
+                                {formatPrice(listing.fiyat)} TL
+                              </p>
+                              {listing.metrekare && (
+                                <p className="text-xs text-muted-foreground">
+                                  {formatPrice(getUnitPrice(listing.fiyat, listing.metrekare) || 0)} TL/m2
+                                </p>
+                              )}
+                            </div>
+
+                            {/* AI Score */}
+                            {listing.ai_skoru && (
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1.5 text-sm">
+                                  <Bot className="w-4 h-4 text-primary" />
+                                  <span className="font-medium">{listing.ai_skoru}/100</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 py-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === 1}
+                  onClick={() => handleSearch(currentPage - 1)}
+                >
+                  Önceki
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  {currentPage} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === totalPages}
+                  onClick={() => handleSearch(currentPage + 1)}
+                >
+                  Sonraki
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -428,15 +732,23 @@ const SearchPage = () => {
               </div>
             ))}
 
+            {aiChatMutation.isPending && (
+              <div className="flex justify-start">
+                <div className="bg-muted rounded-lg px-4 py-2.5">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                </div>
+              </div>
+            )}
+
             {/* Quick Actions */}
             <div className="flex flex-wrap gap-2">
-              {["Yatırım", "Oturum", "Kira"].map((action) => (
+              {["Yatırım önerileri", "Fiyat analizi", "Bölge karşılaştır"].map((action) => (
                 <Button
                   key={action}
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setChatMessages(prev => [...prev, { role: "user", content: `${action} amaçlı bakıyorum` }]);
+                    setChatInput(action);
                   }}
                 >
                   {action}
@@ -452,8 +764,13 @@ const SearchPage = () => {
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+              disabled={aiChatMutation.isPending}
             />
-            <Button size="icon" onClick={handleSendMessage}>
+            <Button
+              size="icon"
+              onClick={handleSendMessage}
+              disabled={aiChatMutation.isPending || !chatInput.trim()}
+            >
               <Send className="w-4 h-4" />
             </Button>
           </div>

@@ -6,9 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Home, Eye, EyeOff, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { AxiosError } from "axios";
+import { ApiResponse } from "@/types/api";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -19,24 +23,29 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (!email || !password) {
+      setError("Lütfen e-posta ve şifre giriniz.");
+      return;
+    }
+
     setIsLoading(true);
 
-    // Simulate login - in production this would call an API
-    setTimeout(() => {
-      if (email && password) {
-        // Store auth state
-        localStorage.setItem("isAuthenticated", "true");
-        localStorage.setItem("user", JSON.stringify({ 
-          name: "Ahmet Yılmaz", 
-          email, 
-          role: "Danışman" 
-        }));
-        navigate("/dashboard");
+    try {
+      const user = await login({ email, password }, rememberMe);
+      // Redirect admins to admin panel, others to dashboard
+      if (user.rol === 'super_admin' || user.rol === 'yonetici') {
+        navigate("/admin");
       } else {
-        setError("Lütfen e-posta ve şifre giriniz.");
-        setIsLoading(false);
+        navigate("/dashboard");
       }
-    }, 1000);
+    } catch (err) {
+      const axiosError = err as AxiosError<ApiResponse<unknown>>;
+      const errorMessage = axiosError.response?.data?.mesaj || "Giriş başarısız. Lütfen tekrar deneyin.";
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

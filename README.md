@@ -1,73 +1,212 @@
-# Welcome to your Lovable project
+# AI Emlak Asistani - Frontend
 
-## Project info
+React + TypeScript frontend for the AI Real Estate Assistant platform.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Tech Stack
 
-## How can I edit this code?
+- **React 18** - UI library
+- **TypeScript** - Type safety
+- **Vite** - Build tool
+- **Tailwind CSS** - Styling
+- **shadcn/ui** - UI components
+- **React Query** - Server state management
+- **React Router** - Routing
+- **Axios** - HTTP client
+- **Framer Motion** - Animations
 
-There are several ways of editing your application.
+## Quick Start
 
-**Use Lovable**
+### Prerequisites
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- Node.js 18+ (recommended: 20)
+- npm or bun
 
-Changes made via Lovable will be committed automatically to this repo.
+### Local Development
 
-**Use your preferred IDE**
+```bash
+# Install dependencies
+npm install
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The application will be available at `http://localhost:5173`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Build for Production
 
-**Use GitHub Codespaces**
+```bash
+npm run build
+npm run preview
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Environment Variables
 
-## What technologies are used for this project?
+Create a `.env.local` file in the project root:
 
-This project is built with:
+```env
+VITE_API_BASE_URL=http://localhost:8000/api/v1
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `VITE_API_BASE_URL` | Backend API base URL | `http://localhost:8000/api/v1` |
 
-## How can I deploy this project?
+## Docker
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+### Build Docker Image
 
-## Can I connect a custom domain to my Lovable project?
+```bash
+docker build -t emlak-frontend .
+```
 
-Yes, you can!
+### Run with Docker
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```bash
+docker run -p 80:80 emlak-frontend
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+### Run with Docker Compose (Recommended)
+
+From the project root:
+
+```bash
+# Development mode with hot reloading
+docker compose -f docker-compose.dev.yml up frontend
+
+# Production mode
+docker compose up frontend
+```
+
+## Project Structure
+
+```
+src/
+├── assets/           # Static assets (images)
+├── components/
+│   ├── internal/     # Internal app components
+│   └── ui/           # shadcn/ui components
+├── contexts/
+│   └── AuthContext.tsx   # Authentication state
+├── hooks/
+│   ├── useApi.ts     # React Query hooks
+│   └── use-toast.ts  # Toast notifications
+├── lib/
+│   ├── api-client.ts # Axios instance
+│   ├── query-client.ts # React Query config
+│   └── utils.ts      # Utility functions
+├── pages/
+│   ├── Login.tsx
+│   ├── internal/     # Protected pages
+│   │   ├── Dashboard.tsx
+│   │   ├── SearchPage.tsx
+│   │   ├── ListingsPage.tsx
+│   │   ├── ListingDetailPage.tsx
+│   │   ├── FavoritesPage.tsx
+│   │   ├── ComparePage.tsx
+│   │   ├── ImportPage.tsx
+│   │   └── SettingsPage.tsx
+│   └── admin/        # Admin pages
+├── types/
+│   └── api.ts        # TypeScript interfaces
+├── App.tsx           # Main app component
+└── main.tsx          # Entry point
+```
+
+## Pages
+
+| Route | Description | Auth Required |
+|-------|-------------|---------------|
+| `/login` | Login page | No |
+| `/dashboard` | Dashboard with stats | Yes |
+| `/search` | AI-powered search | Yes |
+| `/listings` | Property list | Yes |
+| `/listings/:id` | Property detail | Yes |
+| `/favorites` | Saved favorites | Yes |
+| `/compare` | Compare properties | Yes |
+| `/import` | CSV import | Yes |
+| `/settings` | User settings | Yes |
+| `/admin/*` | Admin pages | Yes (Admin only) |
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview production build |
+| `npm run lint` | Run ESLint |
+| `npm run test` | Run tests |
+| `npm run test:watch` | Run tests in watch mode |
+
+## API Integration
+
+The frontend uses React Query for data fetching and caching. All API calls are made through the centralized API client.
+
+### Example Usage
+
+```tsx
+import { useDashboardStats, useSearch } from '@/hooks/useApi';
+
+// Fetch dashboard stats
+const { data, isLoading, error } = useDashboardStats();
+
+// Search properties
+const searchMutation = useSearch();
+const handleSearch = async (query: string) => {
+  const results = await searchMutation.mutateAsync({
+    sorgu: query,
+    sayfa: 1,
+  });
+};
+```
+
+## Authentication
+
+JWT authentication is handled by `AuthContext`. Tokens are stored in localStorage and automatically refreshed.
+
+```tsx
+import { useAuth } from '@/contexts/AuthContext';
+
+const { user, login, logout, isAuthenticated } = useAuth();
+```
+
+## Health Check
+
+The frontend exposes a health check at `/health`:
+
+```bash
+curl http://localhost/health
+```
+
+Response:
+```json
+{"status":"healthy"}
+```
+
+## Testing
+
+```bash
+# Run tests once
+npm run test
+
+# Run tests in watch mode
+npm run test:watch
+```
+
+## Linting
+
+```bash
+npm run lint
+```
+
+## Contributing
+
+1. Create a feature branch
+2. Make changes
+3. Run linting and tests
+4. Submit a pull request
+
+## License
+
+Proprietary - Internal use only.
