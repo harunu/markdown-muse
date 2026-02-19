@@ -52,7 +52,20 @@ import {
 import { motion } from "framer-motion";
 import { useProperties, useDeleteProperty } from "@/hooks/useApi";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { IlanOzet } from "@/types/api";
+
+// Demo mock listings
+const DEMO_LISTINGS: IlanOzet[] = [
+  { id: 1, baslik: "Kadıköy Moda 3+1 Deniz Manzaralı", ilan_tipi: "satilik", emlak_tipi: "daire", sehir: "İstanbul", ilce: "Kadıköy", fiyat: 4500000, oda_sayisi: "3+1", metrekare: 145, kaynak: "sahibinden", durum: "aktif", birim_fiyat: 31034, olusturma_tarihi: "2025-01-15", guncelleme_tarihi: "2025-01-20" },
+  { id: 2, baslik: "Beşiktaş Merkez 2+1 Lüks Daire", ilan_tipi: "satilik", emlak_tipi: "daire", sehir: "İstanbul", ilce: "Beşiktaş", fiyat: 6200000, oda_sayisi: "2+1", metrekare: 110, kaynak: "hepsiemlak", durum: "aktif", birim_fiyat: 56364, olusturma_tarihi: "2025-01-10", guncelleme_tarihi: "2025-01-18" },
+  { id: 3, baslik: "Üsküdar Çengelköy Villa", ilan_tipi: "satilik", emlak_tipi: "villa", sehir: "İstanbul", ilce: "Üsküdar", fiyat: 12000000, oda_sayisi: "5+2", metrekare: 320, kaynak: "emlakjet", durum: "aktif", birim_fiyat: 37500, olusturma_tarihi: "2025-01-08", guncelleme_tarihi: "2025-01-12" },
+  { id: 4, baslik: "Ataşehir Finanskent 1+1 Stüdyo", ilan_tipi: "kiralik", emlak_tipi: "daire", sehir: "İstanbul", ilce: "Ataşehir", fiyat: 2100000, oda_sayisi: "1+1", metrekare: 55, kaynak: "sahibinden", durum: "taslak", birim_fiyat: 38182, olusturma_tarihi: "2025-01-05", guncelleme_tarihi: "2025-01-06" },
+  { id: 5, baslik: "Sarıyer Tarabya 4+1 Boğaz Manzara", ilan_tipi: "satilik", emlak_tipi: "daire", sehir: "İstanbul", ilce: "Sarıyer", fiyat: 15500000, oda_sayisi: "4+1", metrekare: 230, kaynak: "hepsiemlak", durum: "aktif", birim_fiyat: 67391, olusturma_tarihi: "2025-01-03", guncelleme_tarihi: "2025-01-15" },
+  { id: 6, baslik: "Bakırköy Sahil 3+1 Residence", ilan_tipi: "satilik", emlak_tipi: "residence", sehir: "İstanbul", ilce: "Bakırköy", fiyat: 5800000, oda_sayisi: "3+1", metrekare: 135, kaynak: "emlakjet", durum: "pasif", birim_fiyat: 42963, olusturma_tarihi: "2025-01-01", guncelleme_tarihi: "2025-01-10" },
+  { id: 7, baslik: "Maltepe Bağdat Caddesi 2+1", ilan_tipi: "satilik", emlak_tipi: "daire", sehir: "İstanbul", ilce: "Maltepe", fiyat: 3400000, oda_sayisi: "2+1", metrekare: 95, kaynak: "sahibinden", durum: "aktif", birim_fiyat: 35789, olusturma_tarihi: "2024-12-28", guncelleme_tarihi: "2025-01-05" },
+  { id: 8, baslik: "Şişli Nişantaşı 4+1 Penthouse", ilan_tipi: "satilik", emlak_tipi: "penthouse", sehir: "İstanbul", ilce: "Şişli", fiyat: 22000000, oda_sayisi: "4+1", metrekare: 280, kaynak: "hepsiemlak", durum: "aktif", birim_fiyat: 78571, olusturma_tarihi: "2024-12-20", guncelleme_tarihi: "2025-01-02" },
+];
 
 const formatPrice = (price: number) => {
   if (price >= 1000000) {
@@ -84,6 +97,8 @@ const StatusBadge = ({ status }: { status: string }) => {
 const ListingsPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isDemoUser = user?.id === 0;
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -111,12 +126,15 @@ const ListingsPage = () => {
   if (statusFilter) queryParams.durum = statusFilter;
 
   // API hooks
-  const { data, isLoading, error, refetch } = useProperties(queryParams);
+  const { data, isLoading: apiLoading, error: apiError, refetch } = useProperties(queryParams);
   const deleteMutation = useDeleteProperty();
 
-  const listings = data?.sonuclar || [];
-  const totalItems = data?.toplam || 0;
-  const totalPages = data?.toplam_sayfa || 1;
+  // Use mock data for demo users
+  const listings = isDemoUser ? DEMO_LISTINGS : (data?.sonuclar || []);
+  const totalItems = isDemoUser ? DEMO_LISTINGS.length : (data?.toplam || 0);
+  const totalPages = isDemoUser ? 1 : (data?.toplam_sayfa || 1);
+  const isLoading = isDemoUser ? false : apiLoading;
+  const error = isDemoUser ? null : apiError;
 
   // Selection handlers
   const toggleSelection = (id: number) => {
