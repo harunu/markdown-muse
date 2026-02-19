@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Home, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Home, Eye, EyeOff, Loader2, Check, Crown, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { AxiosError } from "axios";
@@ -19,7 +20,7 @@ const Login = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-
+  const [showPlans, setShowPlans] = useState(false);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -172,6 +173,17 @@ const Login = () => {
                 Demo Admin
               </Button>
             </div>
+
+            <p className="text-center text-sm text-muted-foreground mt-4">
+              Hesabın yok mu?{" "}
+              <button
+                type="button"
+                onClick={() => setShowPlans(true)}
+                className="text-primary hover:underline font-medium"
+              >
+                Planları Gör
+              </button>
+            </p>
           </form>
         </div>
 
@@ -180,6 +192,70 @@ const Login = () => {
           © 2025 AI Emlak Asistanı - İç Kullanım
         </p>
       </motion.div>
+
+      {/* Plans Modal */}
+      <Dialog open={showPlans} onOpenChange={setShowPlans}>
+        <DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-2">
+            <DialogTitle className="text-xl font-semibold text-center">Planını Seç</DialogTitle>
+            <p className="text-sm text-muted-foreground text-center">İhtiyacına uygun planla başla</p>
+          </DialogHeader>
+          <div className="grid sm:grid-cols-2 gap-4 p-6 pt-4">
+            {/* Free Plan */}
+            <div className="border border-border rounded-xl p-5 flex flex-col">
+              <div className="flex items-center gap-2 mb-1">
+                <Sparkles className="w-5 h-5 text-muted-foreground" />
+                <h3 className="font-semibold text-foreground">Keşfet</h3>
+              </div>
+              <p className="text-2xl font-bold text-foreground mb-1">Ücretsiz</p>
+              <p className="text-sm text-muted-foreground mb-4">Ürünü keşfetmek için demo erişim</p>
+              <ul className="space-y-2.5 mb-6 flex-1">
+                {["Demo ilanları görüntüleme", "Örnek analiz çıktısı görme", "Dashboard deneyimi"].map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setShowPlans(false);
+                  demoLogin('profesyonel');
+                  navigate('/dashboard');
+                }}
+              >
+                Ücretsiz Başla
+              </Button>
+            </div>
+
+            {/* Premium Plan */}
+            <div className="border-2 border-primary rounded-xl p-5 flex flex-col relative bg-primary/[0.03]">
+              <div className="absolute -top-3 right-4 bg-primary text-primary-foreground text-xs font-medium px-2.5 py-0.5 rounded-full">
+                Önerilen
+              </div>
+              <div className="flex items-center gap-2 mb-1">
+                <Crown className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold text-foreground">Profesyonel</h3>
+              </div>
+              <p className="text-2xl font-bold text-foreground mb-1">Premium</p>
+              <p className="text-sm text-muted-foreground mb-4">Gerçek analiz ve tam erişim</p>
+              <ul className="space-y-2.5 mb-6 flex-1">
+                {["Sınırsız AI analiz", "CSV import", "Semantik arama", "İlan karşılaştırma", "Excel export"].map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-sm text-foreground">
+                    <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Button className="w-full" onClick={() => setShowPlans(false)}>
+                Premium'a Geç
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
