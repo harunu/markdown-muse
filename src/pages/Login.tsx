@@ -12,7 +12,7 @@ import { ApiResponse } from "@/types/api";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, demoLogin } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -148,6 +148,30 @@ const Login = () => {
                 "Giriş Yap"
               )}
             </Button>
+
+            <div className="relative my-2">
+              <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+              <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">veya</span></div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => { demoLogin('profesyonel'); navigate('/dashboard'); }}
+              >
+                Demo Kullanıcı
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => { demoLogin('yonetici'); navigate('/admin'); }}
+              >
+                Demo Admin
+              </Button>
+            </div>
           </form>
         </div>
 
