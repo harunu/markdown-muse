@@ -249,7 +249,7 @@ const Login = () => {
                   </li>
                 ))}
               </ul>
-              <Button className="w-full" onClick={() => setShowPlans(false)}>
+              <Button className="w-full" onClick={() => { setShowPlans(false); navigate('/premium/checkout'); }}>
                 Premium'a Geç
               </Button>
             </div>

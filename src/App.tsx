@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { queryClient } from "@/lib/query-client";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Login from "./pages/Login";
+import PremiumCheckout from "./pages/PremiumCheckout";
+import PremiumSuccess from "./pages/PremiumSuccess";
 import InternalLayout from "./components/internal/InternalLayout";
 import Dashboard from "./pages/internal/Dashboard";
 import SearchPage from "./pages/internal/SearchPage";
@@ -73,6 +75,8 @@ const AppRoutes = () => (
   <Routes>
     {/* Login */}
     <Route path="/login" element={<Login />} />
+    <Route path="/premium/checkout" element={<PremiumCheckout />} />
+    <Route path="/premium/aktif" element={<PremiumSuccess />} />
 
     {/* Redirect root to dashboard */}
     <Route path="/" element={<Navigate to="/dashboard" replace />} />
