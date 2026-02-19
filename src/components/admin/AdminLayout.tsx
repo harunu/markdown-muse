@@ -7,6 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
@@ -21,6 +22,7 @@ const menuItems = [
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const { logout } = useAuth();
 
   return (
     <div className="admin-theme min-h-screen bg-background font-admin">
@@ -75,18 +77,17 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
 
         {/* Back to User UI */}
         <div className="absolute bottom-4 left-0 right-0 px-2">
-          <Link to="/">
-            <Button
-              variant="ghost"
-              className={cn(
-                "w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent",
-                collapsed && "justify-center"
-              )}
-            >
-              <LogOut className="w-4 h-4" />
-              {!collapsed && <span className="ml-3 text-sm">Kullanıcı Arayüzü</span>}
-            </Button>
-          </Link>
+          <Button
+            variant="ghost"
+            onClick={() => logout()}
+            className={cn(
+              "w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent",
+              collapsed && "justify-center"
+            )}
+          >
+            <LogOut className="w-4 h-4" />
+            {!collapsed && <span className="ml-3 text-sm">Çıkış Yap</span>}
+          </Button>
         </div>
       </aside>
 
