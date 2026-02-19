@@ -12,6 +12,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (credentials: LoginRequest, remember?: boolean) => Promise<Kullanici>;
+  demoLogin: (role?: 'profesyonel' | 'yonetici' | 'super_admin') => void;
   logout: () => Promise<void>;
   updateUser: (user: Partial<Kullanici>) => void;
 }
@@ -71,6 +72,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [navigate]);
 
+  const demoLogin = useCallback((role: 'profesyonel' | 'yonetici' | 'super_admin' = 'profesyonel') => {
+    const demoUser: Kullanici = {
+      id: 0,
+      ad_soyad: 'Demo Kullanıcı',
+      email: 'demo@emlak.com',
+      rol: role,
+    };
+    setUser(demoUser);
+  }, []);
+
   const updateUser = useCallback((updates: Partial<Kullanici>) => {
     setUser((prev) => (prev ? { ...prev, ...updates } : null));
   }, []);
@@ -80,6 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: !!user,
     isLoading,
     login,
+    demoLogin,
     logout,
     updateUser,
   };

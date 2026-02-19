@@ -181,7 +181,7 @@ const SearchPage = () => {
     try {
       await saveSearchMutation.mutateAsync({
         sorgu: searchQuery,
-        filtreler: filters,
+      filtreler: filters as Record<string, unknown>,
         sonuc_sayisi: totalResults,
         isim: searchName,
       });
