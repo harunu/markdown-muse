@@ -16,6 +16,21 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardStats, useRecentSearches } from "@/hooks/useApi";
 
+// Demo/mock data for demo users
+const DEMO_STATS = {
+  toplam_ilan: 12458,
+  bugun_arama: 34,
+  favori_sayisi: 127,
+  son_import: { basarili_satir: 850, tarih: new Date().toISOString() },
+};
+
+const DEMO_RECENT_SEARCHES = [
+  { id: 1, sorgu: "Kadıköy 3+1 daire", sonuc_sayisi: 48, tarih: new Date(Date.now() - 3600000).toISOString() },
+  { id: 2, sorgu: "Beşiktaş deniz manzaralı", sonuc_sayisi: 23, tarih: new Date(Date.now() - 7200000).toISOString() },
+  { id: 3, sorgu: "Üsküdar satılık villa", sonuc_sayisi: 12, tarih: new Date(Date.now() - 86400000).toISOString() },
+  { id: 4, sorgu: "Ataşehir yeni bina", sonuc_sayisi: 67, tarih: new Date(Date.now() - 172800000).toISOString() },
+];
+
 // Format relative time in Turkish
 const formatRelativeTime = (dateString: string): string => {
   const date = new Date(dateString);
@@ -46,8 +61,17 @@ const quickActions = [
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { data: stats, isLoading: statsLoading, error: statsError } = useDashboardStats();
-  const { data: recentSearches, isLoading: searchesLoading } = useRecentSearches();
+  const isDemoUser = user?.id === 0;
+
+  const { data: apiStats, isLoading: statsLoading, error: statsError } = useDashboardStats();
+  const { data: apiRecentSearches, isLoading: searchesLoading } = useRecentSearches();
+
+  // Use mock data for demo users, real data otherwise
+  const stats = isDemoUser ? DEMO_STATS : apiStats;
+  const recentSearches = isDemoUser ? DEMO_RECENT_SEARCHES : apiRecentSearches;
+  const isStatsLoading = isDemoUser ? false : statsLoading;
+  const isStatsError = isDemoUser ? null : statsError;
+  const isSearchesLoading = isDemoUser ? false : searchesLoading;
 
   const firstName = user?.ad_soyad?.split(" ")[0] || "Kullanıcı";
 
@@ -113,7 +137,7 @@ const Dashboard = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statsLoading ? (
+        {isStatsLoading ? (
           // Loading skeleton
           Array.from({ length: 4 }).map((_, index) => (
             <Card key={index} className="animate-pulse">
@@ -129,7 +153,7 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           ))
-        ) : statsError ? (
+        ) : isStatsError ? (
           // Error state
           <Card className="col-span-full">
             <CardContent className="p-5 flex items-center gap-3 text-destructive">
@@ -207,7 +231,7 @@ const Dashboard = () => {
             </Link>
           </CardHeader>
           <CardContent className="pt-0">
-            {searchesLoading ? (
+            {isSearchesLoading ? (
               // Loading state
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
