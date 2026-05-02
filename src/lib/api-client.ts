@@ -1,6 +1,7 @@
 /**
  * Centralized Axios API client with interceptors
  * Based on 10-frontend-integration.md
+ * Updated to use English API response keys
  */
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { ApiResponse } from '@/types/api';
@@ -138,11 +139,11 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // Extract error message from backend response
-    const errorMessage = error.response?.data?.mesaj || 'Beklenmeyen bir hata oluştu.';
+    // Extract error message from backend response (now in English)
+    const errorMessage = error.response?.data?.message || 'An unexpected error occurred.';
 
-    // Attach Turkish error message to error object
-    (error as AxiosError & { turkishMessage?: string }).turkishMessage = errorMessage;
+    // Attach error message to error object for easy access
+    (error as AxiosError & { apiMessage?: string }).apiMessage = errorMessage;
 
     return Promise.reject(error);
   }

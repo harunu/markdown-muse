@@ -1,230 +1,230 @@
 /**
  * TypeScript types for API integration
  * Based on 10-frontend-integration.md
+ * Updated to match English backend API field names
  */
 
 // API Response Envelope
 export interface ApiResponse<T> {
-  basarili: boolean;
-  veri?: T;
-  mesaj?: string;
-  hata_kodu?: string;
-  detaylar?: Record<string, string[]>;
+  success: boolean;
+  data?: T;
+  message?: string;
+  error_code?: string;
+  details?: Record<string, string[]>;
 }
 
 // Paginated Response
 export interface PaginatedResponse<T> {
-  sonuclar: T[];
-  toplam: number;
-  sayfa: number;
-  toplam_sayfa: number;
+  results: T[];
+  total: number;
+  page: number;
+  total_pages: number;
 }
 
 // User Preferences
-export interface KullaniciTercihler {
-  varsayilan_sehir: string;
-  sonuc_sayisi: number;
-  ai_otomatik: boolean;
-  email_bildirimleri: boolean;
+export interface UserPreferences {
+  default_city: string;
+  results_per_page: number;
+  ai_auto: boolean;
+  email_notifications: boolean;
 }
 
 // User
-export interface Kullanici {
+export interface User {
   id: number;
-  ad_soyad: string;
+  full_name: string;
   email: string;
-  rol: 'profesyonel' | 'yonetici' | 'super_admin';
-  tercihler?: KullaniciTercihler;
+  role: 'professional' | 'admin' | 'super_admin';
+  preferences?: UserPreferences;
 }
 
 // Auth Response
 export interface AuthResponse {
   access_token: string;
   refresh_token: string;
-  kullanici: Kullanici;
+  user: User;
 }
 
 // Property (Full)
-export interface Ilan {
+export interface Property {
   id: number;
-  baslik: string;
-  ilan_tipi: 'satilik' | 'kiralik';
-  emlak_tipi: 'daire' | 'villa' | 'arsa' | 'isyeri' | 'residence';
-  sehir: string;
-  ilce: string;
-  mahalle?: string | null;
-  fiyat: number;
-  para_birimi: string;
-  metrekare?: number | null;
-  oda_sayisi?: string | null;
-  banyo_sayisi?: number | null;
-  bina_yasi?: number | null;
-  kat?: number | null;
-  toplam_kat?: number | null;
-  isitma_tipi?: string | null;
-  aciklama?: string | null;
-  ozellikler: string[];
-  gorseller: string[];
-  konum?: { enlem: number; boylam: number } | null;
-  kaynak: string;
-  durum: 'aktif' | 'pasif' | 'taslak' | 'silindi';
-  birim_fiyat?: number | null;
-  olusturma_tarihi: string;
-  guncelleme_tarihi: string;
+  title: string;
+  listing_type: 'sale' | 'rent';
+  property_type: 'apartment' | 'villa' | 'land' | 'commercial' | 'residence';
+  city: string;
+  district: string;
+  neighborhood?: string | null;
+  price: number;
+  area?: number | null;
+  room_count?: string | null;
+  building_age?: number | null;
+  floor?: number | null;
+  total_floors?: number | null;
+  heating?: string | null;
+  description?: string | null;
+  features: string[];
+  images: string[];
+  location?: { lat: number; lng: number } | null;
+  source: string;
+  status: 'active' | 'inactive' | 'draft' | 'deleted';
+  price_per_sqm?: number | null;
+  created_at: string;
+  updated_at: string;
 }
 
 // Property Summary (used in lists)
-export interface IlanOzet {
+export interface PropertySummary {
   id: number;
-  baslik: string;
-  ilan_tipi: 'satilik' | 'kiralik';
-  emlak_tipi: string;
-  sehir: string;
-  ilce: string;
-  fiyat: number;
-  metrekare?: number | null;
-  oda_sayisi?: string | null;
-  bina_yasi?: number | null;
-  durum: string;
-  kaynak: string;
-  birim_fiyat?: number | null;
-  konum?: { enlem: number; boylam: number } | null;
-  olusturma_tarihi: string;
-  guncelleme_tarihi: string;
-  ai_skoru?: number;
+  title: string;
+  listing_type: 'sale' | 'rent';
+  property_type: string;
+  city: string;
+  district: string;
+  price: number;
+  area?: number | null;
+  room_count?: string | null;
+  building_age?: number | null;
+  status: string;
+  source: string;
+  price_per_sqm?: number | null;
+  location?: { lat: number; lng: number } | null;
+  created_at: string;
+  updated_at: string;
+  ai_score?: number;
 }
 
 // AI Analysis
-export interface AiAnaliz {
-  fiyat_skoru: number;
-  fiyat_degerlendirme: string;
-  metrekare_birim_fiyat?: number;
-  bolge_ortalama_birim_fiyat?: number;
-  fiyat_farki_yuzde?: number;
-  avantajlar: string[];
-  dezavantajlar: string[];
-  tavsiye: string;
-  genel_degerlendirme: string;
+export interface AIAnalysis {
+  price_score: number;
+  price_evaluation: string;
+  price_per_sqm?: number;
+  area_average_price_per_sqm?: number;
+  price_difference_percent?: number;
+  advantages: string[];
+  disadvantages: string[];
+  recommendation: string;
+  overall_evaluation: string;
 }
 
 // AI Comparison
-export interface AiKarsilastirma {
-  ozet: string;
-  en_uygun_fiyat?: {
-    ilan_id: number;
-    baslik: string;
-    sebep: string;
+export interface AIComparison {
+  summary: string;
+  best_price?: {
+    property_id: number;
+    title: string;
+    reason: string;
   };
-  en_iyi_konum?: {
-    ilan_id: number;
-    baslik: string;
-    sebep: string;
+  best_location?: {
+    property_id: number;
+    title: string;
+    reason: string;
   };
-  en_iyi_deger?: {
-    ilan_id: number;
-    baslik: string;
-    sebep: string;
+  best_value?: {
+    property_id: number;
+    title: string;
+    reason: string;
   };
-  karsilastirma_tablosu?: Array<{
-    ilan_id: number;
-    baslik: string;
-    fiyat_skoru: number;
-    konum_skoru: number;
-    ozellik_skoru: number;
-    genel_skor: number;
-    one_cikan_ozellik: string;
-    dikkat_edilecek: string;
+  comparison_table?: Array<{
+    property_id: number;
+    title: string;
+    price_score: number;
+    location_score: number;
+    feature_score: number;
+    overall_score: number;
+    standout_feature: string;
+    attention_point: string;
   }>;
-  tavsiye: string;
+  recommendation: string;
 }
 
 // Import Status
-export interface ImportDurum {
+export interface ImportStatus {
   import_id: string;
-  durum: 'dogrulaniyor' | 'onay_bekliyor' | 'isleniyor' | 'tamamlandi' | 'hatali';
-  ilerleme: number;
-  toplam_satir: number;
-  gecerli_satir: number;
-  hatali_satir: number;
-  on_izleme?: Record<string, unknown>[];
-  hatalar?: Array<{ satir: number; alan: string; mesaj: string }>;
+  status: 'validating' | 'pending_confirmation' | 'processing' | 'completed' | 'failed';
+  progress: number;
+  total_rows: number;
+  valid_rows: number;
+  error_rows: number;
+  preview?: Record<string, unknown>[];
+  errors?: Array<{ row: number; field: string; message: string }>;
 }
 
 // Dashboard Stats
 export interface DashboardStats {
-  toplam_ilan: number;
-  bugun_arama: number;
-  favori_sayisi: number;
-  son_import?: {
-    id: number;
-    dosya_adi: string;
-    durum: string;
-    toplam_satir: number;
-    basarili_satir: number;
-    hatali_satir: number;
-    tarih: string;
+  total_properties: number;
+  today_searches: number;
+  favorites_count: number;
+  last_import?: {
+    id: string;
+    file_name: string;
+    status: string;
+    total_rows: number;
+    successful_rows: number;
+    failed_rows: number;
+    date: string;
   } | null;
 }
 
 // Recent Search
-export interface SonArama {
+export interface RecentSearch {
   id: number;
-  sorgu: string;
-  filtreler: Record<string, unknown>;
-  sonuc_sayisi: number;
-  tarih: string;
+  query: string;
+  filters: Record<string, unknown>;
+  result_count: number;
+  date: string;
 }
 
 // Saved Search
-export interface KaydedilenArama {
+export interface SavedSearch {
   id: number;
-  sorgu: string;
-  filtreler: Record<string, unknown>;
-  sonuc_sayisi: number;
-  isim: string;
-  olusturma_tarihi: string;
+  query: string;
+  filters: Record<string, unknown>;
+  result_count: number;
+  name: string;
+  date: string;
 }
 
 // Favorite
-export interface Favori {
-  ilan: IlanOzet;
-  not_metni: string;
-  eklenme_tarihi: string;
+export interface Favorite {
+  id: number;
+  property: PropertySummary;
+  note: string;
+  added_at: string;
 }
 
 // Search Request
-export interface AramaIstegi {
-  sorgu?: string;
-  filtreler?: {
-    sehir?: string;
-    ilce?: string;
-    tip?: string;
-    islem_tipi?: string;
-    min_fiyat?: number;
-    max_fiyat?: number;
-    min_metrekare?: number;
-    max_metrekare?: number;
-    oda_sayisi?: string;
+export interface SearchRequest {
+  query?: string;
+  filters?: {
+    city?: string;
+    district?: string;
+    property_type?: string;
+    listing_type?: string;
+    price_min?: number;
+    price_max?: number;
+    area_min?: number;
+    area_max?: number;
+    room_count?: string;
   };
-  siralama?: string;
-  sayfa?: number;
-  sayfa_boyutu?: number;
+  sort_by?: string;
+  page?: number;
+  page_size?: number;
 }
 
 // Chat Message
-export interface SohbetMesaj {
+export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
 }
 
 // Chat Session
-export interface SohbetOturum {
+export interface ChatSession {
   session_id: string;
-  session_tipi: 'property' | 'search' | 'comparison' | 'general';
-  mesaj_sayisi: number;
-  son_mesaj?: string;
-  guncelleme_tarihi: string;
+  session_type: 'property' | 'search' | 'comparison' | 'general';
+  message_count: number;
+  last_message?: string;
+  updated_at: string;
 }
 
 // Login Request
@@ -234,21 +234,21 @@ export interface LoginRequest {
 }
 
 // Change Password Request
-export interface SifreDegistirRequest {
-  mevcut_sifre: string;
-  yeni_sifre: string;
-  yeni_sifre_tekrar: string;
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
+  new_password_confirm: string;
 }
 
 // Profile Update Request
-export interface ProfilGuncelle {
-  ad_soyad?: string;
+export interface ProfileUpdate {
+  full_name?: string;
 }
 
 // Preferences Update Request
-export interface TercihlerGuncelle {
-  varsayilan_sehir?: string;
-  sonuc_sayisi?: number;
-  ai_otomatik?: boolean;
-  email_bildirimleri?: boolean;
+export interface PreferencesUpdate {
+  default_city?: string;
+  results_per_page?: number;
+  ai_auto?: boolean;
+  email_notifications?: boolean;
 }

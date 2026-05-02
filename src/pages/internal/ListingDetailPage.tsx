@@ -99,8 +99,8 @@ const ListingDetailPage = () => {
   const aiChatMutation = useAiChat();
 
   // Check if favorite
-  const isFavorite = favorites?.some(f => f.ilan.id === propertyId) ?? false;
-  const favoriteNote = favorites?.find(f => f.ilan.id === propertyId)?.not_metni || "";
+  const isFavorite = favorites?.some(f => f.property.id === propertyId) ?? false;
+  const favoriteNote = favorites?.find(f => f.property.id === propertyId)?.note || "";
 
   // Toggle favorite
   const toggleFavorite = async () => {
@@ -123,7 +123,7 @@ const ListingDetailPage = () => {
       // First add to favorites, then add note
       try {
         await addFavoriteMutation.mutateAsync(propertyId);
-        await updateNoteMutation.mutateAsync({ ilanId: propertyId, notMetni: noteText });
+        await updateNoteMutation.mutateAsync({ propertyId: propertyId, note: noteText });
         toast({ title: "Not kaydedildi" });
         setNoteDialogOpen(false);
       } catch {
@@ -131,7 +131,7 @@ const ListingDetailPage = () => {
       }
     } else {
       try {
-        await updateNoteMutation.mutateAsync({ ilanId: propertyId, notMetni: noteText });
+        await updateNoteMutation.mutateAsync({ propertyId: propertyId, note: noteText });
         toast({ title: "Not guncellendi" });
         setNoteDialogOpen(false);
       } catch {
@@ -150,19 +150,19 @@ const ListingDetailPage = () => {
 
     try {
       const response = await aiChatMutation.mutateAsync({
-        mesaj: userMessage,
+        message: userMessage,
         session_id: sessionId,
-        baglam_tipi: "property",
-        baglam_verisi: {
-          ilan_id: propertyId,
-          baslik: listing?.baslik,
-          fiyat: listing?.fiyat,
-          konum: `${listing?.ilce}, ${listing?.sehir}`,
+        context_type: "property",
+        context_data: {
+          property_id: propertyId,
+          title: listing?.title,
+          price: listing?.price,
+          location: `${listing?.district}, ${listing?.city}`,
         },
       });
 
       setSessionId(response.session_id);
-      setChatMessages(prev => [...prev, { role: "assistant", content: response.yanit }]);
+      setChatMessages(prev => [...prev, { role: "assistant", content: response.response }]);
     } catch {
       setChatMessages(prev => [...prev, {
         role: "assistant",
@@ -193,8 +193,8 @@ const ListingDetailPage = () => {
     );
   }
 
-  const aiAnalysis = aiData?.analiz;
-  const birimFiyat = listing.metrekare ? Math.round(listing.fiyat / listing.metrekare) : 0;
+  const aiAnalysis = aiData?.analysis;
+  const birimFiyat = listing.area ? Math.round(listing.price / listing.area) : 0;
 
   return (
     <div className="space-y-6">
@@ -239,13 +239,13 @@ const ListingDetailPage = () => {
               <CardContent className="p-4">
                 <div className="aspect-video rounded-lg overflow-hidden mb-3 bg-muted">
                   <img
-                    src={listing.gorseller?.[selectedImage] || getPropertyImage(selectedImage)}
-                    alt={listing.baslik}
+                    src={listing.images?.[selectedImage] || getPropertyImage(selectedImage)}
+                    alt={listing.title}
                     className="w-full h-full object-cover"
                   />
                 </div>
                 <div className="flex gap-2 overflow-x-auto">
-                  {(listing.gorseller?.length ? listing.gorseller : [0, 1, 2]).map((img, index) => (
+                  {(listing.images?.length ? listing.images : [0, 1, 2]).map((img, index) => (
                     <button
                       key={index}
                       onClick={() => setSelectedImage(index)}
@@ -275,19 +275,19 @@ const ListingDetailPage = () => {
               <CardContent className="p-6">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h1 className="text-2xl font-semibold text-foreground mb-2">{listing.baslik}</h1>
+                    <h1 className="text-2xl font-semibold text-foreground mb-2">{listing.title}</h1>
                     <p className="text-muted-foreground flex items-center gap-1">
                       <MapPin className="w-4 h-4" />
-                      {listing.mahalle && `${listing.mahalle}, `}{listing.ilce}, {listing.sehir}
+                      {listing.neighborhood && `${listing.neighborhood}, `}{listing.district}, {listing.city}
                     </p>
                   </div>
-                  <Badge variant={listing.ilan_tipi === "satilik" ? "default" : "secondary"}>
-                    {listing.ilan_tipi === "satilik" ? "Satilik" : "Kiralik"}
+                  <Badge variant={listing.listing_type === "sale" ? "default" : "secondary"}>
+                    {listing.listing_type === "sale" ? "Satilik" : "Kiralik"}
                   </Badge>
                 </div>
                 <div className="flex items-baseline justify-between mt-4">
-                  <p className="text-3xl font-bold text-primary">{formatPrice(listing.fiyat)} TL</p>
-                  {listing.metrekare && (
+                  <p className="text-3xl font-bold text-primary">{formatPrice(listing.price)} TL</p>
+                  {listing.area && (
                     <p className="text-muted-foreground">{formatPrice(birimFiyat)} TL/m2</p>
                   )}
                 </div>
@@ -308,12 +308,12 @@ const ListingDetailPage = () => {
               <CardContent>
                 <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
                   {[
-                    { icon: Bed, label: listing.oda_sayisi || "-" },
-                    { icon: Maximize, label: listing.metrekare ? `${listing.metrekare}m2` : "-" },
-                    { icon: Building, label: listing.kat ? `${listing.kat}/${listing.toplam_kat || "?"}` : "-" },
-                    { icon: Calendar, label: listing.bina_yasi !== null ? `${listing.bina_yasi} yil` : "-" },
-                    { icon: Flame, label: listing.isitma_tipi || "-" },
-                    { icon: DollarSign, label: listing.ilan_tipi === "satilik" ? "Satilik" : "Kiralik" },
+                    { icon: Bed, label: listing.room_count || "-" },
+                    { icon: Maximize, label: listing.area ? `${listing.area}m2` : "-" },
+                    { icon: Building, label: listing.floor ? `${listing.floor}/${listing.total_floors || "?"}` : "-" },
+                    { icon: Calendar, label: listing.building_age !== null ? `${listing.building_age} yil` : "-" },
+                    { icon: Flame, label: listing.heating || "-" },
+                    { icon: DollarSign, label: listing.listing_type === "sale" ? "Satilik" : "Kiralik" },
                   ].map((item, index) => (
                     <div key={index} className="text-center">
                       <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center mx-auto mb-1">
@@ -328,7 +328,7 @@ const ListingDetailPage = () => {
           </motion.div>
 
           {/* Description */}
-          {listing.aciklama && (
+          {listing.description && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -340,7 +340,7 @@ const ListingDetailPage = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-                    {listing.aciklama}
+                    {listing.description}
                   </p>
                 </CardContent>
               </Card>
@@ -348,7 +348,7 @@ const ListingDetailPage = () => {
           )}
 
           {/* Additional Features */}
-          {listing.ozellikler && listing.ozellikler.length > 0 && (
+          {listing.features && listing.features.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -360,7 +360,7 @@ const ListingDetailPage = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
-                    {listing.ozellikler.map((feature) => (
+                    {listing.features.map((feature) => (
                       <Badge key={feature} variant="secondary" className="gap-1">
                         <Check className="w-3 h-3" />
                         {feature}
@@ -387,7 +387,7 @@ const ListingDetailPage = () => {
                   <MapPin className="w-10 h-10 text-muted-foreground" />
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {listing.mahalle && `${listing.mahalle}, `}{listing.ilce}, {listing.sehir}
+                  {listing.neighborhood && `${listing.neighborhood}, `}{listing.district}, {listing.city}
                 </p>
               </CardContent>
             </Card>
@@ -402,7 +402,7 @@ const ListingDetailPage = () => {
             transition={{ delay: 0.2 }}
             className="sticky top-24 space-y-4"
           >
-            <Card>
+            <Card data-testid="ai-analysis-panel">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Bot className="w-5 h-5 text-primary" />
@@ -417,32 +417,32 @@ const ListingDetailPage = () => {
                 ) : aiAnalysis ? (
                   <>
                     {/* Price Score */}
-                    <div>
+                    <div data-testid="price-score">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm text-muted-foreground">Fiyat Skoru</span>
-                        <span className="font-semibold">{aiAnalysis.fiyat_skoru}/100</span>
+                        <span className="font-semibold">{aiAnalysis.price_score}/100</span>
                       </div>
-                      <Progress value={aiAnalysis.fiyat_skoru} className="h-2" />
-                      <p className="text-sm text-muted-foreground mt-1">{aiAnalysis.fiyat_degerlendirme}</p>
+                      <Progress value={aiAnalysis.price_score} className="h-2" />
+                      <p className="text-sm text-muted-foreground mt-1">{aiAnalysis.price_evaluation}</p>
                     </div>
 
                     {/* Market Comparison */}
-                    {aiAnalysis.bolge_ortalama_birim_fiyat && (
+                    {aiAnalysis.area_average_price_per_sqm && (
                       <div className="bg-muted/50 rounded-lg p-4 space-y-2">
                         <h4 className="font-medium text-sm">Piyasa Karsilastirmasi</h4>
                         <div className="space-y-1 text-sm">
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">Bu ilan:</span>
-                            <span>{formatPrice(aiAnalysis.metrekare_birim_fiyat || birimFiyat)} TL/m2</span>
+                            <span>{formatPrice(aiAnalysis.price_per_sqm || birimFiyat)} TL/m2</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">Bolge ort:</span>
-                            <span>{formatPrice(aiAnalysis.bolge_ortalama_birim_fiyat)} TL/m2</span>
+                            <span>{formatPrice(aiAnalysis.area_average_price_per_sqm)} TL/m2</span>
                           </div>
-                          {aiAnalysis.fiyat_farki_yuzde !== undefined && (
-                            <div className={`flex justify-between font-medium ${aiAnalysis.fiyat_farki_yuzde < 0 ? "text-success" : "text-warning"}`}>
+                          {aiAnalysis.price_difference_percent !== undefined && (
+                            <div className={`flex justify-between font-medium ${aiAnalysis.price_difference_percent < 0 ? "text-success" : "text-warning"}`}>
                               <span>Fark:</span>
-                              <span>{aiAnalysis.fiyat_farki_yuzde.toFixed(1)}%</span>
+                              <span>{aiAnalysis.price_difference_percent.toFixed(1)}%</span>
                             </div>
                           )}
                         </div>
@@ -450,14 +450,14 @@ const ListingDetailPage = () => {
                     )}
 
                     {/* Pros */}
-                    {aiAnalysis.avantajlar && aiAnalysis.avantajlar.length > 0 && (
+                    {aiAnalysis.advantages && aiAnalysis.advantages.length > 0 && (
                       <div>
                         <h4 className="font-medium text-sm mb-2 flex items-center gap-1">
                           <Check className="w-4 h-4 text-success" />
                           Artilar
                         </h4>
                         <ul className="space-y-1">
-                          {aiAnalysis.avantajlar.map((pro, index) => (
+                          {aiAnalysis.advantages.map((pro, index) => (
                             <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
                               <span className="text-success mt-1">-</span>
                               {pro}
@@ -468,14 +468,14 @@ const ListingDetailPage = () => {
                     )}
 
                     {/* Cons */}
-                    {aiAnalysis.dezavantajlar && aiAnalysis.dezavantajlar.length > 0 && (
+                    {aiAnalysis.disadvantages && aiAnalysis.disadvantages.length > 0 && (
                       <div>
                         <h4 className="font-medium text-sm mb-2 flex items-center gap-1">
                           <AlertTriangle className="w-4 h-4 text-warning" />
                           Dikkat Edilecekler
                         </h4>
                         <ul className="space-y-1">
-                          {aiAnalysis.dezavantajlar.map((con, index) => (
+                          {aiAnalysis.disadvantages.map((con, index) => (
                             <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
                               <span className="text-warning mt-1">-</span>
                               {con}
@@ -486,13 +486,13 @@ const ListingDetailPage = () => {
                     )}
 
                     {/* AI Recommendation */}
-                    {aiAnalysis.tavsiye && (
+                    {aiAnalysis.recommendation && (
                       <div className="bg-primary/5 rounded-lg p-4">
                         <h4 className="font-medium text-sm mb-2 flex items-center gap-1">
                           <Lightbulb className="w-4 h-4 text-primary" />
                           AI Tavsiyesi
                         </h4>
-                        <p className="text-sm text-muted-foreground">{aiAnalysis.tavsiye}</p>
+                        <p className="text-sm text-muted-foreground">{aiAnalysis.recommendation}</p>
                       </div>
                     )}
                   </>
@@ -505,7 +505,7 @@ const ListingDetailPage = () => {
 
                 {/* Actions */}
                 <div className="space-y-2 pt-2">
-                  <Button className="w-full gap-2" onClick={() => setChatOpen(true)}>
+                  <Button data-testid="ask-ai-button" className="w-full gap-2" onClick={() => setChatOpen(true)}>
                     <MessageCircle className="w-4 h-4" />
                     AI'ya Soru Sor
                   </Button>
@@ -576,6 +576,7 @@ const ListingDetailPage = () => {
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
+                  data-testid={msg.role === "assistant" ? "advisor-answer" : undefined}
                   className={`max-w-[80%] rounded-lg px-4 py-2.5 ${
                     msg.role === "user"
                       ? "bg-primary text-primary-foreground"
@@ -613,6 +614,7 @@ const ListingDetailPage = () => {
           {/* Chat Input */}
           <div className="flex items-center gap-2 pt-4 border-t">
             <Input
+              data-testid="advisor-input"
               placeholder="Mesajinizi yazin..."
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
@@ -620,6 +622,7 @@ const ListingDetailPage = () => {
               disabled={aiChatMutation.isPending}
             />
             <Button
+              data-testid="advisor-submit"
               size="icon"
               onClick={handleSendMessage}
               disabled={aiChatMutation.isPending || !chatInput.trim()}

@@ -1,26 +1,27 @@
 /**
  * API hooks for React Query integration
  * Based on 10-frontend-integration.md
+ * Updated to use English API response keys
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-client';
 import {
   DashboardStats,
-  SonArama,
-  KaydedilenArama,
-  Ilan,
-  IlanOzet,
+  RecentSearch,
+  SavedSearch,
+  Property,
+  PropertySummary,
   PaginatedResponse,
-  AramaIstegi,
-  Favori,
-  AiAnaliz,
-  AiKarsilastirma,
-  ImportDurum,
-  Kullanici,
-  ProfilGuncelle,
-  TercihlerGuncelle,
-  SifreDegistirRequest,
+  SearchRequest,
+  Favorite,
+  AIAnalysis,
+  AIComparison,
+  ImportStatus,
+  User,
+  ProfileUpdate,
+  PreferencesUpdate,
+  ChangePasswordRequest,
 } from '@/types/api';
 
 // Dashboard hooks
@@ -28,8 +29,8 @@ export const useDashboardStats = () => {
   return useQuery({
     queryKey: queryKeys.dashboard.stats,
     queryFn: async () => {
-      const response = await apiClient.get<{ basarili: boolean; veri: DashboardStats }>('/dashboard/stats');
-      return response.data.veri;
+      const response = await apiClient.get<{ success: boolean; data: DashboardStats }>('/dashboard/stats');
+      return response.data.data;
     },
   });
 };
@@ -38,8 +39,8 @@ export const useRecentSearches = () => {
   return useQuery({
     queryKey: queryKeys.search.recent,
     queryFn: async () => {
-      const response = await apiClient.get<{ basarili: boolean; sonuclar: SonArama[] }>('/search/recent');
-      return response.data.sonuclar;
+      const response = await apiClient.get<{ success: boolean; results: RecentSearch[] }>('/search/recent');
+      return response.data.results;
     },
   });
 };
@@ -49,12 +50,12 @@ export const useProperties = (params?: Record<string, unknown>) => {
   return useQuery({
     queryKey: params ? queryKeys.properties.filtered(params) : queryKeys.properties.all,
     queryFn: async () => {
-      const response = await apiClient.get<{ basarili: boolean } & PaginatedResponse<IlanOzet>>('/properties', { params });
+      const response = await apiClient.get<{ success: boolean } & PaginatedResponse<PropertySummary>>('/properties', { params });
       return {
-        sonuclar: response.data.sonuclar,
-        toplam: response.data.toplam,
-        sayfa: response.data.sayfa,
-        toplam_sayfa: response.data.toplam_sayfa,
+        results: response.data.results,
+        total: response.data.total,
+        page: response.data.page,
+        total_pages: response.data.total_pages,
       };
     },
   });
@@ -64,7 +65,7 @@ export const useProperty = (id: number) => {
   return useQuery({
     queryKey: queryKeys.properties.detail(id),
     queryFn: async () => {
-      const response = await apiClient.get<Ilan>(`/properties/${id}`);
+      const response = await apiClient.get<Property>(`/properties/${id}`);
       return response.data;
     },
     enabled: !!id,
@@ -87,14 +88,14 @@ export const useDeleteProperty = () => {
 // Search hooks
 export const useSearch = () => {
   return useMutation({
-    mutationFn: async (request: AramaIstegi) => {
+    mutationFn: async (request: SearchRequest) => {
       const response = await apiClient.post<{
-        basarili: boolean;
-        sonuclar: IlanOzet[];
-        toplam: number;
-        sayfa: number;
-        toplam_sayfa: number;
-        arama_tipi: string;
+        success: boolean;
+        results: PropertySummary[];
+        total: number;
+        page: number;
+        total_pages: number;
+        search_type: string;
       }>('/search/', request);
       return response.data;
     },
@@ -105,7 +106,7 @@ export const useSaveSearch = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { sorgu?: string; filtreler?: Record<string, unknown>; sonuc_sayisi: number; isim: string }) => {
+    mutationFn: async (data: { query?: string; filters?: Record<string, unknown>; result_count: number; name: string }) => {
       const response = await apiClient.post('/search/save', data);
       return response.data;
     },
@@ -119,8 +120,8 @@ export const useSavedSearches = () => {
   return useQuery({
     queryKey: queryKeys.search.saved,
     queryFn: async () => {
-      const response = await apiClient.get<{ basarili: boolean; sonuclar: KaydedilenArama[] }>('/search/saved');
-      return response.data.sonuclar;
+      const response = await apiClient.get<{ success: boolean; results: SavedSearch[] }>('/search/saved');
+      return response.data.results;
     },
   });
 };
@@ -130,8 +131,8 @@ export const useFavorites = () => {
   return useQuery({
     queryKey: queryKeys.favorites.all,
     queryFn: async () => {
-      const response = await apiClient.get<{ basarili: boolean; sonuclar: Favori[] }>('/favorites/');
-      return response.data.sonuclar;
+      const response = await apiClient.get<{ success: boolean; results: Favorite[] }>('/favorites/');
+      return response.data.results;
     },
   });
 };
@@ -140,8 +141,8 @@ export const useAddFavorite = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (ilanId: number) => {
-      const response = await apiClient.post('/favorites/', { ilan_id: ilanId });
+    mutationFn: async (propertyId: number) => {
+      const response = await apiClient.post('/favorites/', { property_id: propertyId });
       return response.data;
     },
     onSuccess: () => {
@@ -155,8 +156,8 @@ export const useRemoveFavorite = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (ilanId: number) => {
-      await apiClient.delete(`/favorites/${ilanId}`);
+    mutationFn: async (propertyId: number) => {
+      await apiClient.delete(`/favorites/${propertyId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.favorites.all });
@@ -169,8 +170,8 @@ export const useUpdateFavoriteNote = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ ilanId, notMetni }: { ilanId: number; notMetni: string }) => {
-      const response = await apiClient.patch(`/favorites/${ilanId}/note`, { not_metni: notMetni });
+    mutationFn: async ({ propertyId, note }: { propertyId: number; note: string }) => {
+      const response = await apiClient.patch(`/favorites/${propertyId}/note`, { note });
       return response.data;
     },
     onSuccess: () => {
@@ -180,22 +181,22 @@ export const useUpdateFavoriteNote = () => {
 };
 
 // AI hooks
-export const useAiAnalysis = (ilanId: number) => {
+export const useAiAnalysis = (propertyId: number) => {
   return useQuery({
-    queryKey: queryKeys.ai.analysis(ilanId),
+    queryKey: queryKeys.ai.analysis(propertyId),
     queryFn: async () => {
-      const response = await apiClient.post<{ basarili: boolean; analiz: AiAnaliz; cached?: boolean }>('/ai/analyze', { ilan_id: ilanId });
+      const response = await apiClient.post<{ success: boolean; analysis: AIAnalysis; cached?: boolean }>('/ai/analyze', { property_id: propertyId });
       return response.data;
     },
-    enabled: !!ilanId,
+    enabled: !!propertyId,
     staleTime: 24 * 60 * 60 * 1000, // 24 hours (cached on backend)
   });
 };
 
 export const useAiComparison = () => {
   return useMutation({
-    mutationFn: async (ilanIdleri: number[]) => {
-      const response = await apiClient.post<{ basarili: boolean; karsilastirma: AiKarsilastirma }>('/ai/compare', { ilan_idleri: ilanIdleri });
+    mutationFn: async (propertyIds: number[]) => {
+      const response = await apiClient.post<{ success: boolean; comparison: AIComparison }>('/ai/compare', { property_ids: propertyIds });
       return response.data;
     },
   });
@@ -204,12 +205,12 @@ export const useAiComparison = () => {
 export const useAiChat = () => {
   return useMutation({
     mutationFn: async (data: {
-      mesaj: string;
+      message: string;
       session_id?: string;
-      baglam_tipi?: 'property' | 'search' | 'comparison' | 'general';
-      baglam_verisi?: Record<string, unknown>;
+      context_type?: 'property' | 'search' | 'comparison' | 'general';
+      context_data?: Record<string, unknown>;
     }) => {
-      const response = await apiClient.post<{ basarili: boolean; session_id: string; yanit: string }>('/ai/chat', data);
+      const response = await apiClient.post<{ success: boolean; session_id: string; response: string }>('/ai/chat', data);
       return response.data;
     },
   });
@@ -220,8 +221,8 @@ export const useImportHistory = () => {
   return useQuery({
     queryKey: queryKeys.import.history,
     queryFn: async () => {
-      const response = await apiClient.get<{ basarili: boolean; sonuclar: ImportDurum[] }>('/import/history');
-      return response.data.sonuclar;
+      const response = await apiClient.get<{ success: boolean; results: ImportStatus[] }>('/import/history');
+      return response.data.results;
     },
   });
 };
@@ -230,14 +231,14 @@ export const useImportStatus = (importId: string, enabled: boolean = true) => {
   return useQuery({
     queryKey: queryKeys.import.status(importId),
     queryFn: async () => {
-      const response = await apiClient.get<{ basarili: boolean; import: ImportDurum }>(`/import/${importId}/status`);
-      return response.data.import;
+      const response = await apiClient.get<{ success: boolean; data: ImportStatus }>(`/import/${importId}/status`);
+      return response.data.data;
     },
     enabled: enabled && !!importId,
     refetchInterval: (query) => {
-      const data = query.state.data as ImportDurum | undefined;
+      const data = query.state.data as ImportStatus | undefined;
       // Stop polling when complete or failed
-      if (data?.durum === 'tamamlandi' || data?.durum === 'hatali') {
+      if (data?.status === 'completed' || data?.status === 'failed') {
         return false;
       }
       return 2000; // Poll every 2 seconds
@@ -253,7 +254,7 @@ export const useUploadCsv = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await apiClient.post<{ basarili: boolean; import_id: string }>('/import/upload', formData, {
+      const response = await apiClient.post<{ success: boolean; import_id: string }>('/import/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       return response.data;
@@ -285,8 +286,8 @@ export const useCurrentUser = () => {
   return useQuery({
     queryKey: queryKeys.auth.me,
     queryFn: async () => {
-      const response = await apiClient.get<{ basarili: boolean; kullanici: Kullanici }>('/auth/me');
-      return response.data.kullanici;
+      const response = await apiClient.get<{ success: boolean; user: User }>('/auth/me');
+      return response.data.user;
     },
   });
 };
@@ -295,7 +296,7 @@ export const useUpdateProfile = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: ProfilGuncelle) => {
+    mutationFn: async (data: ProfileUpdate) => {
       const response = await apiClient.patch('/auth/profile', data);
       return response.data;
     },
@@ -309,7 +310,7 @@ export const useUpdatePreferences = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: TercihlerGuncelle) => {
+    mutationFn: async (data: PreferencesUpdate) => {
       const response = await apiClient.patch('/auth/preferences', data);
       return response.data;
     },
@@ -321,7 +322,7 @@ export const useUpdatePreferences = () => {
 
 export const useChangePassword = () => {
   return useMutation({
-    mutationFn: async (data: SifreDegistirRequest) => {
+    mutationFn: async (data: ChangePasswordRequest) => {
       const response = await apiClient.post('/auth/change-password', data);
       return response.data;
     },

@@ -35,14 +35,14 @@ const Login = () => {
     try {
       const user = await login({ email, password }, rememberMe);
       // Redirect admins to admin panel, others to dashboard
-      if (user.rol === 'super_admin' || user.rol === 'yonetici') {
+      if (user.role === 'super_admin' || user.role === 'admin') {
         navigate("/admin");
       } else {
         navigate("/dashboard");
       }
     } catch (err) {
       const axiosError = err as AxiosError<ApiResponse<unknown>>;
-      const errorMessage = axiosError.response?.data?.mesaj || "Giriş başarısız. Lütfen tekrar deneyin.";
+      const errorMessage = axiosError.response?.data?.message || "Giriş başarısız. Lütfen tekrar deneyin.";
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -72,6 +72,7 @@ const Login = () => {
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
+              data-testid="error-message"
               className="bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg p-3 mb-6"
             >
               {error}
@@ -150,30 +151,6 @@ const Login = () => {
               )}
             </Button>
 
-            <div className="relative my-2">
-              <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-              <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">veya</span></div>
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={() => { demoLogin('profesyonel'); navigate('/dashboard'); }}
-              >
-                Demo Kullanıcı
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={() => { demoLogin('yonetici'); navigate('/admin'); }}
-              >
-                Demo Admin
-              </Button>
-            </div>
-
             <p className="text-center text-sm text-muted-foreground mt-4">
               Hesabın yok mu?{" "}
               <button
@@ -217,15 +194,7 @@ const Login = () => {
                   </li>
                 ))}
               </ul>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  setShowPlans(false);
-                  demoLogin('profesyonel');
-                  navigate('/dashboard');
-                }}
-              >
+              <Button variant="outline" className="w-full" onClick={() => { setShowPlans(false); demoLogin('professional'); navigate('/dashboard'); }}>
                 Ücretsiz Başla
               </Button>
             </div>

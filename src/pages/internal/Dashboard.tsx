@@ -18,17 +18,17 @@ import { useDashboardStats, useRecentSearches } from "@/hooks/useApi";
 
 // Demo/mock data for demo users
 const DEMO_STATS = {
-  toplam_ilan: 12458,
-  bugun_arama: 34,
-  favori_sayisi: 127,
-  son_import: { basarili_satir: 850, tarih: new Date().toISOString() },
+  total_properties: 12458,
+  today_searches: 34,
+  favorites_count: 127,
+  last_import: { id: 0, file_name: 'demo.csv', status: 'completed', total_rows: 850, successful_rows: 850, failed_rows: 0, date: new Date().toISOString() },
 };
 
 const DEMO_RECENT_SEARCHES = [
-  { id: 1, sorgu: "Kadıköy 3+1 daire", sonuc_sayisi: 48, tarih: new Date(Date.now() - 3600000).toISOString() },
-  { id: 2, sorgu: "Beşiktaş deniz manzaralı", sonuc_sayisi: 23, tarih: new Date(Date.now() - 7200000).toISOString() },
-  { id: 3, sorgu: "Üsküdar satılık villa", sonuc_sayisi: 12, tarih: new Date(Date.now() - 86400000).toISOString() },
-  { id: 4, sorgu: "Ataşehir yeni bina", sonuc_sayisi: 67, tarih: new Date(Date.now() - 172800000).toISOString() },
+  { id: 1, query: "Kadıköy 3+1 daire", result_count: 48, date: new Date(Date.now() - 3600000).toISOString() },
+  { id: 2, query: "Beşiktaş deniz manzaralı", result_count: 23, date: new Date(Date.now() - 7200000).toISOString() },
+  { id: 3, query: "Üsküdar satılık villa", result_count: 12, date: new Date(Date.now() - 86400000).toISOString() },
+  { id: 4, query: "Ataşehir yeni bina", result_count: 67, date: new Date(Date.now() - 172800000).toISOString() },
 ];
 
 // Format relative time in Turkish
@@ -73,13 +73,13 @@ const Dashboard = () => {
   const isStatsError = isDemoUser ? null : statsError;
   const isSearchesLoading = isDemoUser ? false : searchesLoading;
 
-  const firstName = user?.ad_soyad?.split(" ")[0] || "Kullanıcı";
+  const firstName = user?.full_name?.split(" ")[0] || "Kullanıcı";
 
   // Build stats cards from API data
   const statsCards = [
     {
       title: "Toplam İlan",
-      value: stats ? formatNumber(stats.toplam_ilan) : "-",
+      value: stats ? formatNumber(stats.total_properties) : "-",
       icon: FileText,
       change: "veritabanında",
       color: "text-primary",
@@ -87,7 +87,7 @@ const Dashboard = () => {
     },
     {
       title: "Bugün Arama",
-      value: stats ? formatNumber(stats.bugun_arama) : "-",
+      value: stats ? formatNumber(stats.today_searches) : "-",
       icon: Search,
       change: "aramanız",
       color: "text-success",
@@ -95,7 +95,7 @@ const Dashboard = () => {
     },
     {
       title: "Favori Listesi",
-      value: stats ? formatNumber(stats.favori_sayisi) : "-",
+      value: stats ? formatNumber(stats.favorites_count) : "-",
       icon: Star,
       change: "ilan",
       color: "text-warning",
@@ -103,9 +103,9 @@ const Dashboard = () => {
     },
     {
       title: "Son Import",
-      value: stats?.son_import ? formatNumber(stats.son_import.basarili_satir) : "-",
+      value: stats?.last_import ? formatNumber(stats.last_import.successful_rows) : "-",
       icon: Upload,
-      change: stats?.son_import ? "ilan eklendi" : "henüz yok",
+      change: stats?.last_import ? "ilan eklendi" : "henüz yok",
       color: "text-secondary",
       bgColor: "bg-secondary/10",
     },
@@ -253,20 +253,20 @@ const Dashboard = () => {
                 {recentSearches.slice(0, 5).map((search) => (
                   <Link
                     key={search.id}
-                    to={`/search?q=${encodeURIComponent(search.sorgu)}`}
+                    to={`/search?q=${encodeURIComponent(search.query)}`}
                     className="flex items-center justify-between py-3 hover:bg-muted/50 -mx-6 px-6 transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
                         <Search className="w-4 h-4 text-muted-foreground" />
                       </div>
-                      <span className="font-medium text-foreground">"{search.sorgu}"</span>
+                      <span className="font-medium text-foreground">"{search.query}"</span>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>{search.sonuc_sayisi} sonuç</span>
+                      <span>{search.result_count} sonuç</span>
                       <div className="flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5" />
-                        <span>{formatRelativeTime(search.tarih)}</span>
+                        <span>{formatRelativeTime(search.date)}</span>
                       </div>
                     </div>
                   </Link>

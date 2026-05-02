@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useProperty, useAiComparison, useProperties } from "@/hooks/useApi";
-import { Ilan, IlanOzet, AiKarsilastirma } from "@/types/api";
+import { Property, PropertySummary, AIComparison } from "@/types/api";
 
 // Placeholder images
 const getPropertyImage = (index: number) => {
@@ -91,7 +91,7 @@ const FeatureRow = ({
 const useMultipleProperties = (ids: number[]) => {
   const results = ids.map(id => useProperty(id));
   const isLoading = results.some(r => r.isLoading);
-  const properties = results.map(r => r.data).filter((p): p is Ilan => p !== undefined);
+  const properties = results.map(r => r.data).filter((p): p is Property => p !== undefined);
   return { properties, isLoading };
 };
 
@@ -113,11 +113,11 @@ const ComparePage = () => {
   const { properties, isLoading: propertiesLoading } = useMultipleProperties(propertyIds);
 
   // Search for adding properties
-  const { data: searchResults } = useProperties(searchQuery ? { arama: searchQuery, sayfa_boyutu: 10 } : undefined);
+  const { data: searchResults } = useProperties(searchQuery ? { search: searchQuery, page_size: 10 } : undefined);
 
   // AI Comparison
   const aiComparisonMutation = useAiComparison();
-  const [aiComparison, setAiComparison] = useState<AiKarsilastirma | null>(null);
+  const [aiComparison, setAiComparison] = useState<AIComparison | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
 
   // Fetch AI comparison when properties change
@@ -126,7 +126,7 @@ const ComparePage = () => {
       setAiLoading(true);
       aiComparisonMutation.mutateAsync(propertyIds)
         .then(result => {
-          setAiComparison(result.karsilastirma);
+          setAiComparison(result.comparison);
         })
         .catch(() => {
           setAiComparison(null);
@@ -163,16 +163,16 @@ const ComparePage = () => {
   };
 
   // Find best values
-  const lowestPrice = properties.length > 0 ? Math.min(...properties.map(c => c.fiyat)) : 0;
-  const lowestPriceM2 = properties.length > 0 ? Math.min(...properties.map(c => c.metrekare ? c.fiyat / c.metrekare : Infinity)) : 0;
-  const largestArea = properties.length > 0 ? Math.max(...properties.map(c => c.metrekare || 0)) : 0;
-  const newestAge = properties.length > 0 ? Math.min(...properties.filter(c => c.bina_yasi !== null).map(c => c.bina_yasi!)) : 0;
+  const lowestPrice = properties.length > 0 ? Math.min(...properties.map(c => c.price)) : 0;
+  const lowestPriceM2 = properties.length > 0 ? Math.min(...properties.map(c => c.area ? c.price / c.area : Infinity)) : 0;
+  const largestArea = properties.length > 0 ? Math.max(...properties.map(c => c.area || 0)) : 0;
+  const newestAge = properties.length > 0 ? Math.min(...properties.filter(c => c.building_age !== null).map(c => c.building_age!)) : 0;
 
   // Calculate unit prices
-  const getUnitPrice = (p: Ilan) => p.metrekare ? Math.round(p.fiyat / p.metrekare) : null;
+  const getUnitPrice = (p: Property) => p.area ? Math.round(p.price / p.area) : null;
 
   // Check feature
-  const hasFeature = (p: Ilan, feature: string) => p.ozellikler?.some(f => f.toLowerCase().includes(feature.toLowerCase())) ?? false;
+  const hasFeature = (p: Property, feature: string) => p.features?.some(f => f.toLowerCase().includes(feature.toLowerCase())) ?? false;
 
   return (
     <div className="space-y-6">
@@ -209,7 +209,7 @@ const ComparePage = () => {
                   />
                 </div>
                 <div className="max-h-64 overflow-auto space-y-2">
-                  {searchResults?.sonuclar?.map((item: IlanOzet) => (
+                  {searchResults?.results?.map((item: PropertySummary) => (
                     <Button
                       key={item.id}
                       variant="ghost"
@@ -218,14 +218,14 @@ const ComparePage = () => {
                       disabled={propertyIds.includes(item.id)}
                     >
                       <div className="text-left">
-                        <p className="font-medium">{item.baslik}</p>
+                        <p className="font-medium">{item.title}</p>
                         <p className="text-xs text-muted-foreground">
-                          {item.ilce}, {item.sehir} - {formatPrice(item.fiyat)}
+                          {item.district}, {item.city} - {formatPrice(item.price)}
                         </p>
                       </div>
                     </Button>
                   ))}
-                  {searchQuery && (!searchResults?.sonuclar || searchResults.sonuclar.length === 0) && (
+                  {searchQuery && (!searchResults?.results || searchResults.results.length === 0) && (
                     <p className="text-center text-muted-foreground py-4">Sonuc bulunamadi</p>
                   )}
                 </div>
@@ -292,13 +292,13 @@ const ComparePage = () => {
                   {properties.map((item, index) => (
                     <td key={item.id} className="p-4 text-center">
                       <img
-                        src={item.gorseller?.[0] || getPropertyImage(index)}
-                        alt={item.baslik}
+                        src={item.images?.[0] || getPropertyImage(index)}
+                        alt={item.title}
                         className="w-full h-24 object-cover rounded-lg cursor-pointer"
                         onClick={() => navigate(`/listings/${item.id}`)}
                       />
-                      <p className="font-medium mt-2">{item.ilce}</p>
-                      <p className="text-sm text-muted-foreground">{item.oda_sayisi} {item.emlak_tipi}</p>
+                      <p className="font-medium mt-2">{item.district}</p>
+                      <p className="text-sm text-muted-foreground">{item.room_count} {item.property_type}</p>
                     </td>
                   ))}
                 </tr>
@@ -306,8 +306,8 @@ const ComparePage = () => {
                 {/* Data Rows */}
                 <CompareRow
                   label="Fiyat"
-                  values={properties.map(c => formatPrice(c.fiyat))}
-                  bestIndex={properties.findIndex(c => c.fiyat === lowestPrice)}
+                  values={properties.map(c => formatPrice(c.price))}
+                  bestIndex={properties.findIndex(c => c.price === lowestPrice)}
                 />
                 <CompareRow
                   label="m2 Fiyati"
@@ -322,23 +322,23 @@ const ComparePage = () => {
                 />
                 <CompareRow
                   label="Alan"
-                  values={properties.map(c => c.metrekare)}
-                  bestIndex={properties.findIndex(c => c.metrekare === largestArea)}
+                  values={properties.map(c => c.area)}
+                  bestIndex={properties.findIndex(c => c.area === largestArea)}
                   suffix=" m2"
                 />
                 <CompareRow
                   label="Oda"
-                  values={properties.map(c => c.oda_sayisi)}
+                  values={properties.map(c => c.room_count)}
                 />
                 <CompareRow
                   label="Bina Yasi"
-                  values={properties.map(c => c.bina_yasi)}
-                  bestIndex={properties.findIndex(c => c.bina_yasi === newestAge)}
+                  values={properties.map(c => c.building_age)}
+                  bestIndex={properties.findIndex(c => c.building_age === newestAge)}
                   suffix=" yil"
                 />
                 <CompareRow
                   label="Kat"
-                  values={properties.map(c => c.kat && c.toplam_kat ? `${c.kat}/${c.toplam_kat}` : c.kat)}
+                  values={properties.map(c => c.floor && c.total_floors ? `${c.floor}/${c.total_floors}` : c.floor)}
                 />
 
                 {/* Features Header */}
@@ -387,42 +387,42 @@ const ComparePage = () => {
                 {/* Summary */}
                 <div>
                   <h4 className="font-medium text-foreground mb-1">Genel Degerlendirme:</h4>
-                  <p className="text-muted-foreground">{aiComparison.ozet}</p>
+                  <p className="text-muted-foreground">{aiComparison.summary}</p>
                 </div>
 
                 {/* Best Options */}
-                {aiComparison.en_uygun_fiyat && (
+                {aiComparison.best_price && (
                   <div>
                     <h4 className="font-medium text-foreground mb-1">En Uygun Fiyat:</h4>
                     <p className="text-muted-foreground">
-                      <span className="font-medium">{aiComparison.en_uygun_fiyat.baslik}</span> - {aiComparison.en_uygun_fiyat.sebep}
+                      <span className="font-medium">{aiComparison.best_price.title}</span> - {aiComparison.best_price.reason}
                     </p>
                   </div>
                 )}
 
-                {aiComparison.en_iyi_konum && (
+                {aiComparison.best_location && (
                   <div>
                     <h4 className="font-medium text-foreground mb-1">En Iyi Konum:</h4>
                     <p className="text-muted-foreground">
-                      <span className="font-medium">{aiComparison.en_iyi_konum.baslik}</span> - {aiComparison.en_iyi_konum.sebep}
+                      <span className="font-medium">{aiComparison.best_location.title}</span> - {aiComparison.best_location.reason}
                     </p>
                   </div>
                 )}
 
-                {aiComparison.en_iyi_deger && (
+                {aiComparison.best_value && (
                   <div>
                     <h4 className="font-medium text-foreground mb-1">En Iyi Deger:</h4>
                     <p className="text-muted-foreground">
-                      <span className="font-medium">{aiComparison.en_iyi_deger.baslik}</span> - {aiComparison.en_iyi_deger.sebep}
+                      <span className="font-medium">{aiComparison.best_value.title}</span> - {aiComparison.best_value.reason}
                     </p>
                   </div>
                 )}
 
                 {/* Recommendation */}
-                {aiComparison.tavsiye && (
+                {aiComparison.recommendation && (
                   <div className="bg-primary/5 rounded-lg p-4">
                     <h4 className="font-medium text-foreground mb-1">Tavsiye:</h4>
-                    <p className="text-muted-foreground">{aiComparison.tavsiye}</p>
+                    <p className="text-muted-foreground">{aiComparison.recommendation}</p>
                   </div>
                 )}
               </>

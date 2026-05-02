@@ -15,13 +15,14 @@ import { Separator } from "@/components/ui/separator";
 import { User, Lock, Settings2, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SettingsPage = () => {
-  const user = JSON.parse(localStorage.getItem("user") || '{"name": "Ahmet Yılmaz", "email": "ahmet@sirket.com"}');
-  
+  const { user } = useAuth();
+
   const [profile, setProfile] = useState({
-    name: user.name,
-    email: user.email,
+    name: user?.full_name || "",
+    email: user?.email || "",
   });
   const [passwords, setPasswords] = useState({
     current: "",
@@ -39,7 +40,6 @@ const SettingsPage = () => {
   const handleSaveProfile = () => {
     setIsSaving(true);
     setTimeout(() => {
-      localStorage.setItem("user", JSON.stringify({ ...user, ...profile }));
       toast.success("Profil güncellendi");
       setIsSaving(false);
     }, 500);

@@ -36,7 +36,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSearch, useAiChat, useSaveSearch, useAddFavorite, useRemoveFavorite, useFavorites } from "@/hooks/useApi";
-import { IlanOzet, AramaIstegi } from "@/types/api";
+import { PropertySummary, SearchRequest } from "@/types/api";
 import { useToast } from "@/hooks/use-toast";
 
 // Format price with Turkish locale
@@ -61,13 +61,13 @@ const getPropertyImage = (index: number) => {
 };
 
 interface Filters {
-  sehir?: string;
-  ilce?: string;
-  min_fiyat?: number;
-  max_fiyat?: number;
-  min_metrekare?: number;
-  max_metrekare?: number;
-  oda_sayisi?: string[];
+  city?: string;
+  district?: string;
+  price_min?: number;
+  price_max?: number;
+  area_min?: number;
+  area_max?: number;
+  room_count?: string[];
 }
 
 interface ChatMessage {
@@ -83,13 +83,13 @@ const SearchPage = () => {
   // Search state
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
   const [filters, setFilters] = useState<Filters>({
-    sehir: "istanbul",
+    city: "istanbul",
   });
   const [sortBy, setSortBy] = useState("price-asc");
   const [currentPage, setCurrentPage] = useState(1);
 
   // Results state
-  const [results, setResults] = useState<IlanOzet[]>([]);
+  const [results, setResults] = useState<PropertySummary[]>([]);
   const [totalResults, setTotalResults] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
@@ -114,7 +114,7 @@ const SearchPage = () => {
 
   // Check if a listing is favorite
   const isFavorite = (ilanId: number) => {
-    return favorites?.some(f => f.ilan.id === ilanId) ?? false;
+    return favorites?.some(f => f.property.id === ilanId) ?? false;
   };
 
   // Toggle favorite
@@ -134,37 +134,37 @@ const SearchPage = () => {
 
   // Perform search
   const handleSearch = async (newPage?: number) => {
-    const request: AramaIstegi = {
-      sorgu: searchQuery || undefined,
-      filtreler: {
-        sehir: filters.sehir,
-        ilce: filters.ilce,
-        min_fiyat: filters.min_fiyat,
-        max_fiyat: filters.max_fiyat,
-        min_metrekare: filters.min_metrekare,
-        max_metrekare: filters.max_metrekare,
-        oda_sayisi: filters.oda_sayisi?.[0],
+    const request: SearchRequest = {
+      query: searchQuery || undefined,
+      filters: {
+        city: filters.city,
+        district: filters.district,
+        price_min: filters.price_min,
+        price_max: filters.price_max,
+        area_min: filters.area_min,
+        area_max: filters.area_max,
+        room_count: filters.room_count?.[0],
       },
-      siralama: sortBy,
-      sayfa: newPage || currentPage,
-      sayfa_boyutu: 20,
+      sort_by: sortBy,
+      page: newPage || currentPage,
+      page_size: 20,
     };
 
     // Clean up undefined values
-    if (request.filtreler) {
-      Object.keys(request.filtreler).forEach(key => {
-        const k = key as keyof typeof request.filtreler;
-        if (request.filtreler![k] === undefined) {
-          delete request.filtreler![k];
+    if (request.filters) {
+      Object.keys(request.filters).forEach(key => {
+        const k = key as keyof typeof request.filters;
+        if (request.filters![k] === undefined) {
+          delete request.filters![k];
         }
       });
     }
 
     try {
       const response = await searchMutation.mutateAsync(request);
-      setResults(response.sonuclar);
-      setTotalResults(response.toplam);
-      setTotalPages(response.toplam_sayfa);
+      setResults(response.results);
+      setTotalResults(response.total);
+      setTotalPages(response.total_pages);
       if (newPage) setCurrentPage(newPage);
     } catch {
       toast({
@@ -177,13 +177,13 @@ const SearchPage = () => {
 
   // Save current search
   const handleSaveSearch = async () => {
-    const searchName = searchQuery || `${filters.sehir || "Tüm"} araması`;
+    const searchName = searchQuery || `${filters.city || "Tüm"} araması`;
     try {
       await saveSearchMutation.mutateAsync({
-        sorgu: searchQuery,
-      filtreler: filters as Record<string, unknown>,
-        sonuc_sayisi: totalResults,
-        isim: searchName,
+        query: searchQuery,
+        filters: filters as Record<string, unknown>,
+        result_count: totalResults,
+        name: searchName,
       });
       toast({ title: "Arama kaydedildi" });
     } catch {
@@ -217,18 +217,18 @@ const SearchPage = () => {
 
     try {
       const response = await aiChatMutation.mutateAsync({
-        mesaj: userMessage,
+        message: userMessage,
         session_id: sessionId,
-        baglam_tipi: "search",
-        baglam_verisi: {
-          sorgu: searchQuery,
-          filtreler: filters,
-          sonuc_sayisi: totalResults,
+        context_type: "search",
+        context_data: {
+          query: searchQuery,
+          filters: filters,
+          result_count: totalResults,
         },
       });
 
       setSessionId(response.session_id);
-      setChatMessages(prev => [...prev, { role: "assistant", content: response.yanit }]);
+      setChatMessages(prev => [...prev, { role: "assistant", content: response.response }]);
     } catch {
       setChatMessages(prev => [...prev, {
         role: "assistant",
@@ -256,6 +256,7 @@ const SearchPage = () => {
             <Search className="w-5 h-5 text-muted-foreground" />
           </div>
           <Input
+            data-testid="semantic-search-input"
             placeholder="Kadıköy'de 15 milyon altı 2+1 daire arıyorum..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -263,6 +264,7 @@ const SearchPage = () => {
             className="pl-14 pr-24 h-12 text-base"
           />
           <Button
+            data-testid="search-button"
             className="absolute right-2 gap-2"
             size="default"
             onClick={() => handleSearch(1)}
@@ -296,10 +298,10 @@ const SearchPage = () => {
               <div className="space-y-2">
                 <Label>Sehir</Label>
                 <Select
-                  value={filters.sehir}
-                  onValueChange={(value) => setFilters(prev => ({ ...prev, sehir: value }))}
+                  value={filters.city}
+                  onValueChange={(value) => setFilters(prev => ({ ...prev, city: value }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="filter-city">
                     <SelectValue placeholder="Şehir seçin" />
                   </SelectTrigger>
                   <SelectContent>
@@ -314,8 +316,8 @@ const SearchPage = () => {
               <div className="space-y-2">
                 <Label>Ilce</Label>
                 <Select
-                  value={filters.ilce}
-                  onValueChange={(value) => setFilters(prev => ({ ...prev, ilce: value }))}
+                  value={filters.district}
+                  onValueChange={(value) => setFilters(prev => ({ ...prev, district: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="İlçe seçin" />
@@ -337,20 +339,20 @@ const SearchPage = () => {
                     placeholder="Min"
                     type="number"
                     className="text-sm"
-                    value={filters.min_fiyat || ""}
+                    value={filters.price_min || ""}
                     onChange={(e) => setFilters(prev => ({
                       ...prev,
-                      min_fiyat: e.target.value ? parseInt(e.target.value) : undefined
+                      price_min: e.target.value ? parseInt(e.target.value) : undefined
                     }))}
                   />
                   <Input
                     placeholder="Max"
                     type="number"
                     className="text-sm"
-                    value={filters.max_fiyat || ""}
+                    value={filters.price_max || ""}
                     onChange={(e) => setFilters(prev => ({
                       ...prev,
-                      max_fiyat: e.target.value ? parseInt(e.target.value) : undefined
+                      price_max: e.target.value ? parseInt(e.target.value) : undefined
                     }))}
                   />
                 </div>
@@ -364,17 +366,17 @@ const SearchPage = () => {
                     <div key={room} className="flex items-center space-x-2">
                       <Checkbox
                         id={`room-${room}`}
-                        checked={filters.oda_sayisi?.includes(room)}
+                        checked={filters.room_count?.includes(room)}
                         onCheckedChange={(checked) => {
                           if (checked) {
                             setFilters(prev => ({
                               ...prev,
-                              oda_sayisi: [...(prev.oda_sayisi || []), room]
+                              room_count: [...(prev.room_count || []), room]
                             }));
                           } else {
                             setFilters(prev => ({
                               ...prev,
-                              oda_sayisi: prev.oda_sayisi?.filter(r => r !== room)
+                              room_count: prev.room_count?.filter(r => r !== room)
                             }));
                           }
                         }}
@@ -395,20 +397,20 @@ const SearchPage = () => {
                     placeholder="Min"
                     type="number"
                     className="text-sm"
-                    value={filters.min_metrekare || ""}
+                    value={filters.area_min || ""}
                     onChange={(e) => setFilters(prev => ({
                       ...prev,
-                      min_metrekare: e.target.value ? parseInt(e.target.value) : undefined
+                      area_min: e.target.value ? parseInt(e.target.value) : undefined
                     }))}
                   />
                   <Input
                     placeholder="Max"
                     type="number"
                     className="text-sm"
-                    value={filters.max_metrekare || ""}
+                    value={filters.area_max || ""}
                     onChange={(e) => setFilters(prev => ({
                       ...prev,
-                      max_metrekare: e.target.value ? parseInt(e.target.value) : undefined
+                      area_max: e.target.value ? parseInt(e.target.value) : undefined
                     }))}
                   />
                 </div>
@@ -447,7 +449,7 @@ const SearchPage = () => {
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={() => setFilters({ sehir: "istanbul" })}
+                  onClick={() => setFilters({ city: "istanbul" })}
                 >
                   Filtreleri Temizle
                 </Button>
@@ -522,7 +524,7 @@ const SearchPage = () => {
           )}
 
           {/* Results List */}
-          <div className="flex-1 overflow-auto space-y-3 pr-1">
+          <div data-testid="search-results" className="flex-1 overflow-auto space-y-3 pr-1">
             {searchMutation.isPending ? (
               // Loading state
               <div className="flex items-center justify-center py-16">
@@ -539,7 +541,7 @@ const SearchPage = () => {
               </div>
             ) : results.length === 0 ? (
               // Empty state
-              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <div data-testid="no-results" className="flex flex-col items-center justify-center py-16 text-muted-foreground">
                 <Search className="w-12 h-12 mb-3 opacity-50" />
                 <p className="text-lg font-medium">Sonuç bulunamadı</p>
                 <p className="text-sm">Farklı kriterlerle aramayı deneyin</p>
@@ -553,7 +555,7 @@ const SearchPage = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                 >
-                  <Card className={`hover:shadow-card transition-all cursor-pointer ${
+                  <Card data-testid="listing-card" className={`hover:shadow-card transition-all cursor-pointer ${
                     selectedListings.includes(listing.id) ? "ring-2 ring-primary" : ""
                   }`}>
                     <CardContent className="p-4">
@@ -573,7 +575,7 @@ const SearchPage = () => {
                         >
                           <img
                             src={getPropertyImage(index)}
-                            alt={listing.baslik}
+                            alt={listing.title}
                             className="w-full h-full object-cover"
                           />
                         </div>
@@ -585,10 +587,10 @@ const SearchPage = () => {
                               className="cursor-pointer"
                               onClick={() => navigate(`/listings/${listing.id}`)}
                             >
-                              <h3 className="font-semibold text-foreground truncate">{listing.baslik}</h3>
+                              <h3 className="font-semibold text-foreground truncate">{listing.title}</h3>
                               <p className="text-sm text-muted-foreground flex items-center gap-1">
                                 <MapPin className="w-3.5 h-3.5" />
-                                {listing.ilce}, {listing.sehir}
+                                {listing.district}, {listing.city}
                               </p>
                             </div>
                             <Button
@@ -602,42 +604,42 @@ const SearchPage = () => {
                           </div>
 
                           <div className="flex flex-wrap gap-2 mt-2 text-xs text-muted-foreground">
-                            {listing.metrekare && <span>{listing.metrekare} m2</span>}
-                            {listing.oda_sayisi && (
+                            {listing.area && <span>{listing.area} m2</span>}
+                            {listing.room_count && (
                               <>
                                 <span>-</span>
-                                <span>{listing.oda_sayisi}</span>
+                                <span>{listing.room_count}</span>
                               </>
                             )}
-                            {listing.bina_yasi !== null && listing.bina_yasi !== undefined && (
+                            {listing.building_age !== null && listing.building_age !== undefined && (
                               <>
                                 <span>-</span>
-                                <span>{listing.bina_yasi} yasinda</span>
+                                <span>{listing.building_age} yasinda</span>
                               </>
                             )}
                             <Badge variant="outline" className="text-xs">
-                              {listing.ilan_tipi === "satilik" ? "Satilik" : "Kiralik"}
+                              {listing.listing_type === "sale" ? "Satilik" : "Kiralik"}
                             </Badge>
                           </div>
 
                           <div className="flex items-center justify-between mt-3">
                             <div>
                               <p className="font-semibold text-lg text-foreground">
-                                {formatPrice(listing.fiyat)} TL
+                                {formatPrice(listing.price)} TL
                               </p>
-                              {listing.metrekare && (
+                              {listing.area && (
                                 <p className="text-xs text-muted-foreground">
-                                  {formatPrice(getUnitPrice(listing.fiyat, listing.metrekare) || 0)} TL/m2
+                                  {formatPrice(getUnitPrice(listing.price, listing.area) || 0)} TL/m2
                                 </p>
                               )}
                             </div>
 
                             {/* AI Score */}
-                            {listing.ai_skoru && (
+                            {listing.ai_score && (
                               <div className="flex items-center gap-2">
                                 <div className="flex items-center gap-1.5 text-sm">
                                   <Bot className="w-4 h-4 text-primary" />
-                                  <span className="font-medium">{listing.ai_skoru}/100</span>
+                                  <span className="font-medium">{listing.ai_score}/100</span>
                                 </div>
                               </div>
                             )}

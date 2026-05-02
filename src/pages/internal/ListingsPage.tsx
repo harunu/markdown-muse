@@ -53,18 +53,18 @@ import { motion } from "framer-motion";
 import { useProperties, useDeleteProperty } from "@/hooks/useApi";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { IlanOzet } from "@/types/api";
+import { PropertySummary } from "@/types/api";
 
 // Demo mock listings
-const DEMO_LISTINGS: IlanOzet[] = [
-  { id: 1, baslik: "Kadıköy Moda 3+1 Deniz Manzaralı", ilan_tipi: "satilik", emlak_tipi: "daire", sehir: "İstanbul", ilce: "Kadıköy", fiyat: 4500000, oda_sayisi: "3+1", metrekare: 145, kaynak: "sahibinden", durum: "aktif", birim_fiyat: 31034, olusturma_tarihi: "2025-01-15", guncelleme_tarihi: "2025-01-20" },
-  { id: 2, baslik: "Beşiktaş Merkez 2+1 Lüks Daire", ilan_tipi: "satilik", emlak_tipi: "daire", sehir: "İstanbul", ilce: "Beşiktaş", fiyat: 6200000, oda_sayisi: "2+1", metrekare: 110, kaynak: "hepsiemlak", durum: "aktif", birim_fiyat: 56364, olusturma_tarihi: "2025-01-10", guncelleme_tarihi: "2025-01-18" },
-  { id: 3, baslik: "Üsküdar Çengelköy Villa", ilan_tipi: "satilik", emlak_tipi: "villa", sehir: "İstanbul", ilce: "Üsküdar", fiyat: 12000000, oda_sayisi: "5+2", metrekare: 320, kaynak: "emlakjet", durum: "aktif", birim_fiyat: 37500, olusturma_tarihi: "2025-01-08", guncelleme_tarihi: "2025-01-12" },
-  { id: 4, baslik: "Ataşehir Finanskent 1+1 Stüdyo", ilan_tipi: "kiralik", emlak_tipi: "daire", sehir: "İstanbul", ilce: "Ataşehir", fiyat: 2100000, oda_sayisi: "1+1", metrekare: 55, kaynak: "sahibinden", durum: "taslak", birim_fiyat: 38182, olusturma_tarihi: "2025-01-05", guncelleme_tarihi: "2025-01-06" },
-  { id: 5, baslik: "Sarıyer Tarabya 4+1 Boğaz Manzara", ilan_tipi: "satilik", emlak_tipi: "daire", sehir: "İstanbul", ilce: "Sarıyer", fiyat: 15500000, oda_sayisi: "4+1", metrekare: 230, kaynak: "hepsiemlak", durum: "aktif", birim_fiyat: 67391, olusturma_tarihi: "2025-01-03", guncelleme_tarihi: "2025-01-15" },
-  { id: 6, baslik: "Bakırköy Sahil 3+1 Residence", ilan_tipi: "satilik", emlak_tipi: "residence", sehir: "İstanbul", ilce: "Bakırköy", fiyat: 5800000, oda_sayisi: "3+1", metrekare: 135, kaynak: "emlakjet", durum: "pasif", birim_fiyat: 42963, olusturma_tarihi: "2025-01-01", guncelleme_tarihi: "2025-01-10" },
-  { id: 7, baslik: "Maltepe Bağdat Caddesi 2+1", ilan_tipi: "satilik", emlak_tipi: "daire", sehir: "İstanbul", ilce: "Maltepe", fiyat: 3400000, oda_sayisi: "2+1", metrekare: 95, kaynak: "sahibinden", durum: "aktif", birim_fiyat: 35789, olusturma_tarihi: "2024-12-28", guncelleme_tarihi: "2025-01-05" },
-  { id: 8, baslik: "Şişli Nişantaşı 4+1 Penthouse", ilan_tipi: "satilik", emlak_tipi: "penthouse", sehir: "İstanbul", ilce: "Şişli", fiyat: 22000000, oda_sayisi: "4+1", metrekare: 280, kaynak: "hepsiemlak", durum: "aktif", birim_fiyat: 78571, olusturma_tarihi: "2024-12-20", guncelleme_tarihi: "2025-01-02" },
+const DEMO_LISTINGS: PropertySummary[] = [
+  { id: 1, title: "Kadıköy Moda 3+1 Deniz Manzaralı", listing_type: "sale", property_type: "apartment", city: "İstanbul", district: "Kadıköy", price: 4500000, room_count: "3+1", area: 145, source: "sahibinden", status: "active", price_per_sqm: 31034, created_at: "2025-01-15", updated_at: "2025-01-20" },
+  { id: 2, title: "Beşiktaş Merkez 2+1 Lüks Daire", listing_type: "sale", property_type: "apartment", city: "İstanbul", district: "Beşiktaş", price: 6200000, room_count: "2+1", area: 110, source: "hepsiemlak", status: "active", price_per_sqm: 56364, created_at: "2025-01-10", updated_at: "2025-01-18" },
+  { id: 3, title: "Üsküdar Çengelköy Villa", listing_type: "sale", property_type: "villa", city: "İstanbul", district: "Üsküdar", price: 12000000, room_count: "5+2", area: 320, source: "emlakjet", status: "active", price_per_sqm: 37500, created_at: "2025-01-08", updated_at: "2025-01-12" },
+  { id: 4, title: "Ataşehir Finanskent 1+1 Stüdyo", listing_type: "rent", property_type: "apartment", city: "İstanbul", district: "Ataşehir", price: 2100000, room_count: "1+1", area: 55, source: "sahibinden", status: "draft", price_per_sqm: 38182, created_at: "2025-01-05", updated_at: "2025-01-06" },
+  { id: 5, title: "Sarıyer Tarabya 4+1 Boğaz Manzara", listing_type: "sale", property_type: "apartment", city: "İstanbul", district: "Sarıyer", price: 15500000, room_count: "4+1", area: 230, source: "hepsiemlak", status: "active", price_per_sqm: 67391, created_at: "2025-01-03", updated_at: "2025-01-15" },
+  { id: 6, title: "Bakırköy Sahil 3+1 Residence", listing_type: "sale", property_type: "residence", city: "İstanbul", district: "Bakırköy", price: 5800000, room_count: "3+1", area: 135, source: "emlakjet", status: "inactive", price_per_sqm: 42963, created_at: "2025-01-01", updated_at: "2025-01-10" },
+  { id: 7, title: "Maltepe Bağdat Caddesi 2+1", listing_type: "sale", property_type: "apartment", city: "İstanbul", district: "Maltepe", price: 3400000, room_count: "2+1", area: 95, source: "sahibinden", status: "active", price_per_sqm: 35789, created_at: "2024-12-28", updated_at: "2025-01-05" },
+  { id: 8, title: "Şişli Nişantaşı 4+1 Penthouse", listing_type: "sale", property_type: "apartment", city: "İstanbul", district: "Şişli", price: 22000000, room_count: "4+1", area: 280, source: "hepsiemlak", status: "active", price_per_sqm: 78571, created_at: "2024-12-20", updated_at: "2025-01-02" },
 ];
 
 const formatPrice = (price: number) => {
@@ -76,19 +76,19 @@ const formatPrice = (price: number) => {
 
 const StatusBadge = ({ status }: { status: string }) => {
   const styles: Record<string, string> = {
-    aktif: "bg-success/10 text-success border-success/20",
-    taslak: "bg-warning/10 text-warning border-warning/20",
-    pasif: "bg-destructive/10 text-destructive border-destructive/20",
+    active: "bg-success/10 text-success border-success/20",
+    draft: "bg-warning/10 text-warning border-warning/20",
+    inactive: "bg-destructive/10 text-destructive border-destructive/20",
   };
 
   const labels: Record<string, string> = {
-    aktif: "Aktif",
-    taslak: "Taslak",
-    pasif: "Pasif",
+    active: "Aktif",
+    draft: "Taslak",
+    inactive: "Pasif",
   };
 
   return (
-    <Badge variant="outline" className={styles[status] || styles.aktif}>
+    <Badge variant="outline" className={styles[status] || styles.active}>
       {labels[status] || status}
     </Badge>
   );
@@ -117,22 +117,22 @@ const ListingsPage = () => {
 
   // Build query params
   const queryParams: Record<string, unknown> = {
-    sayfa: currentPage,
-    sayfa_boyutu: pageSize,
+    page: currentPage,
+    page_size: pageSize,
   };
-  if (searchQuery) queryParams.arama = searchQuery;
-  if (cityFilter) queryParams.sehir = cityFilter;
-  if (districtFilter) queryParams.ilce = districtFilter;
-  if (statusFilter) queryParams.durum = statusFilter;
+  if (searchQuery) queryParams.search = searchQuery;
+  if (cityFilter) queryParams.city = cityFilter;
+  if (districtFilter) queryParams.district = districtFilter;
+  if (statusFilter) queryParams.status = statusFilter;
 
   // API hooks
   const { data, isLoading: apiLoading, error: apiError, refetch } = useProperties(queryParams);
   const deleteMutation = useDeleteProperty();
 
   // Use mock data for demo users
-  const listings = isDemoUser ? DEMO_LISTINGS : (data?.sonuclar || []);
-  const totalItems = isDemoUser ? DEMO_LISTINGS.length : (data?.toplam || 0);
-  const totalPages = isDemoUser ? 1 : (data?.toplam_sayfa || 1);
+  const listings = isDemoUser ? DEMO_LISTINGS : (data?.results || []);
+  const totalItems = isDemoUser ? DEMO_LISTINGS.length : (data?.total || 0);
+  const totalPages = isDemoUser ? 1 : (data?.total_pages || 1);
   const isLoading = isDemoUser ? false : apiLoading;
   const error = isDemoUser ? null : apiError;
 
@@ -238,9 +238,9 @@ const ListingsPage = () => {
                 <SelectValue placeholder="Durum" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="aktif">Aktif</SelectItem>
-                <SelectItem value="taslak">Taslak</SelectItem>
-                <SelectItem value="pasif">Pasif</SelectItem>
+                <SelectItem value="active">Aktif</SelectItem>
+                <SelectItem value="draft">Taslak</SelectItem>
+                <SelectItem value="inactive">Pasif</SelectItem>
               </SelectContent>
             </Select>
             <Button variant="outline" className="gap-2" onClick={applyFilters}>
@@ -329,7 +329,7 @@ const ListingsPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {listings.map((listing: IlanOzet) => (
+                {listings.map((listing: PropertySummary) => (
                   <TableRow key={listing.id} className="group">
                     <TableCell>
                       <Checkbox
@@ -339,33 +339,33 @@ const ListingsPage = () => {
                     </TableCell>
                     <TableCell>
                       <div>
-                        <p className="font-medium text-foreground">{listing.baslik}</p>
+                        <p className="font-medium text-foreground">{listing.title}</p>
                         <p className="text-xs text-muted-foreground">
-                          {listing.oda_sayisi} - {listing.metrekare || "-"} m2
+                          {listing.room_count} - {listing.area || "-"} m2
                         </p>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div>
-                        <p className="text-foreground">{listing.ilce}</p>
-                        <p className="text-xs text-muted-foreground">{listing.sehir}</p>
+                        <p className="text-foreground">{listing.district}</p>
+                        <p className="text-xs text-muted-foreground">{listing.city}</p>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div>
-                        <p className="font-medium text-foreground">{formatPrice(listing.fiyat)}</p>
-                        {listing.birim_fiyat && (
+                        <p className="font-medium text-foreground">{formatPrice(listing.price)}</p>
+                        {listing.price_per_sqm && (
                           <p className="text-xs text-muted-foreground">
-                            {formatPrice(listing.birim_fiyat)}/m2
+                            {formatPrice(listing.price_per_sqm)}/m2
                           </p>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{listing.kaynak}</Badge>
+                      <Badge variant="secondary">{listing.source}</Badge>
                     </TableCell>
                     <TableCell>
-                      <StatusBadge status={listing.durum} />
+                      <StatusBadge status={listing.status} />
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>

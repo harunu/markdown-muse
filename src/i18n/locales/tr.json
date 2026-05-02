@@ -1,0 +1,58 @@
+{
+  "auth": {
+    "errors": {
+      "AUTH_FAILED": "Geçersiz e-posta veya şifre.",
+      "TOKEN_EXPIRED": "Oturum süresi doldu. Lütfen tekrar giriş yapın.",
+      "TOKEN_INVALID": "Geçersiz oturum. Lütfen tekrar giriş yapın.",
+      "USER_INACTIVE": "Hesabınız devre dışı bırakıldı.",
+      "CURRENT_PASSWORD_WRONG": "Mevcut şifre yanlış.",
+      "VALIDATION_ERROR": "Lütfen tüm alanları doldurun."
+    }
+  },
+  "common": {
+    "errors": {
+      "SERVER_ERROR": "Sunucu hatası. Lütfen daha sonra tekrar deneyin.",
+      "NOT_FOUND": "Kaynak bulunamadı.",
+      "CONFLICT": "Bu kaynak zaten mevcut.",
+      "PERMISSION_DENIED": "Bu işlem için yetkiniz bulunmuyor."
+    }
+  },
+  "nav": {
+    "search": "Arama",
+    "listings": "İlanlar",
+    "import": "İçe Aktar",
+    "favorites": "Favoriler",
+    "dashboard": "Panel",
+    "compare": "Karşılaştır",
+    "reports": "Raporlar",
+    "settings": "Ayarlar"
+  },
+  "login": {
+    "title": "Giriş Yap",
+    "email": "E-posta",
+    "password": "Şifre",
+    "submit": "Giriş Yap",
+    "loading": "Giriş yapılıyor..."
+  },
+  "search": {
+    "placeholder": "Şehir ara...",
+    "button": "Ara",
+    "noResults": "Sonuç bulunamadı.",
+    "semanticPlaceholder": "Doğal dille ara...",
+    "semanticButton": "Ara"
+  },
+  "import": {
+    "dropzone": "Dosyayı buraya sürükleyin veya tıklayın",
+    "downloadTemplate": "Şablon İndir",
+    "preview": "Önizleme",
+    "confirm": "İçe Aktarımı Onayla",
+    "history": "İçe Aktarım Geçmişi"
+  },
+  "ai": {
+    "panel": "AI Analiz",
+    "priceScore": "Fiyat Skoru",
+    "askButton": "AI'a Sor",
+    "inputPlaceholder": "Sorunuzu yazın...",
+    "submitButton": "Gönder"
+  }
+}

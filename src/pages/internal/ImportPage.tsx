@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -32,6 +32,8 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
+import { useImport } from "@/hooks/useImport";
+import { ImportJobDetail, ImportError } from "@/types/import";
 
 type UploadState = "idle" | "preview" | "importing" | "complete";
 
@@ -41,6 +43,27 @@ const ImportPage = () => {
   const [dragActive, setDragActive] = useState(false);
   const [progress, setProgress] = useState(0);
   const [errorsOpen, setErrorsOpen] = useState(false);
+
+  // New state variables for API integration
+  const [importId, setImportId] = useState<string | null>(null);
+  const [jobDetail, setJobDetail] = useState<ImportJobDetail | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [updateExisting, setUpdateExisting] = useState(false);
+  const [skipErrors, setSkipErrors] = useState(true);
+  const [pollInterval, setPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const { uploadCSV, getImportStatus, confirmImport, downloadTemplate } = useImport();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+    };
+  }, [pollInterval]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -52,47 +75,111 @@ const ImportPage = () => {
     }
   }, []);
 
+  const processFile = async (file: File) => {
+    setApiError(null);
+    setIsUploading(true);
+
+    try {
+      const uploadResponse = await uploadCSV(file);
+      setImportId(uploadResponse.import_id);
+
+      const statusResponse = await getImportStatus(uploadResponse.import_id);
+      setJobDetail(statusResponse);
+      setState("preview");
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "Dosya yüklenirken bir hata oluştu.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       if (file.name.endsWith(".csv")) {
         setFileName(file.name);
-        setState("preview");
+        processFile(file);
       }
     }
   }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFileName(e.target.files[0].name);
+      const file = e.target.files[0];
+      setFileName(file.name);
+      processFile(file);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!importId) return;
+
+    setState("importing");
+    setProgress(0);
+    setApiError(null);
+
+    try {
+      await confirmImport(importId, {
+        update_existing: updateExisting,
+        skip_errors: skipErrors,
+      });
+
+      // Start polling for status updates
+      const interval = setInterval(async () => {
+        try {
+          const status = await getImportStatus(importId);
+          setJobDetail(status);
+          setProgress(status.progress);
+
+          if (status.status === "completed" || status.status === "failed") {
+            clearInterval(interval);
+            setPollInterval(null);
+            setState("complete");
+          }
+        } catch (error) {
+          clearInterval(interval);
+          setPollInterval(null);
+          setApiError(error instanceof Error ? error.message : "Durum sorgulanırken hata oluştu.");
+          setState("preview");
+        }
+      }, 2000);
+
+      setPollInterval(interval);
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "Import başlatılırken hata oluştu.");
       setState("preview");
     }
   };
 
-  const handleImport = () => {
-    setState("importing");
-    setProgress(0);
-    
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setState("complete");
-          return 100;
-        }
-        return prev + 2;
-      });
-    }, 50);
-  };
-
   const handleReset = () => {
+    if (pollInterval) {
+      clearInterval(pollInterval);
+      setPollInterval(null);
+    }
     setState("idle");
     setFileName("");
     setProgress(0);
+    setImportId(null);
+    setJobDetail(null);
+    setApiError(null);
+    setUpdateExisting(false);
+    setSkipErrors(true);
+    // Clear file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      await downloadTemplate();
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "Şablon indirilirken hata oluştu.");
+    }
   };
 
   return (
@@ -117,7 +204,15 @@ const ImportPage = () => {
           >
             <Card>
               <CardContent className="p-6">
+                {/* API Error Display */}
+                {apiError && (
+                  <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg p-3 mb-4">
+                    {apiError}
+                  </div>
+                )}
+
                 <div
+                  data-testid="import-dropzone"
                   onDragEnter={handleDrag}
                   onDragLeave={handleDrag}
                   onDragOver={handleDrag}
@@ -128,34 +223,50 @@ const ImportPage = () => {
                       : "border-border hover:border-primary/50"
                   }`}
                 >
-                  <Upload className={`w-12 h-12 mx-auto mb-4 ${
-                    dragActive ? "text-primary" : "text-muted-foreground"
-                  }`} />
-                  <p className="text-lg font-medium text-foreground mb-2">
-                    CSV Dosyası Sürükle & Bırak
-                  </p>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    veya dosya seç butonuna tıkla
-                  </p>
-                  <input
-                    type="file"
-                    accept=".csv"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                    id="file-upload"
-                  />
-                  <label htmlFor="file-upload">
-                    <Button variant="outline" asChild>
-                      <span>Dosya Seç</span>
-                    </Button>
-                  </label>
-                  <p className="text-xs text-muted-foreground mt-4">
-                    Desteklenen: .csv (max 50MB)
-                  </p>
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-12 h-12 mx-auto mb-4 text-primary animate-spin" />
+                      <p className="text-lg font-medium text-foreground mb-2">
+                        Dosya Yükleniyor...
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Lütfen bekleyin
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className={`w-12 h-12 mx-auto mb-4 ${
+                        dragActive ? "text-primary" : "text-muted-foreground"
+                      }`} />
+                      <p className="text-lg font-medium text-foreground mb-2">
+                        CSV Dosyası Sürükle & Bırak
+                      </p>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        veya dosya seç butonuna tıkla
+                      </p>
+                      <input
+                        ref={fileInputRef}
+                        data-testid="import-file-input"
+                        type="file"
+                        accept=".csv"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        Dosya Seç
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-4">
+                        Desteklenen: .csv (max 50MB)
+                      </p>
+                    </>
+                  )}
                 </div>
 
                 <div className="flex gap-3 mt-6">
-                  <Button variant="outline" className="gap-2">
+                  <Button data-testid="download-template" variant="outline" className="gap-2" onClick={handleDownloadTemplate}>
                     <Download className="w-4 h-4" />
                     Şablon İndir
                   </Button>
@@ -185,7 +296,7 @@ const ImportPage = () => {
               </CardHeader>
               <CardContent className="pt-0">
                 <code className="text-sm bg-muted px-3 py-2 rounded block">
-                  rooms, gross_sqm, net_sqm, floor_number, building_age, features...
+                  neighborhood, area, room_count, building_age, floor, total_floors, heating, description, features, latitude, longitude
                 </code>
               </CardContent>
             </Card>
@@ -200,6 +311,13 @@ const ImportPage = () => {
             exit={{ opacity: 0, y: -20 }}
             className="space-y-4"
           >
+            {/* API Error Display */}
+            {apiError && (
+              <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg p-3">
+                {apiError}
+              </div>
+            )}
+
             {/* File Info */}
             <Card>
               <CardContent className="p-4">
@@ -209,8 +327,10 @@ const ImportPage = () => {
                       <FileText className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">{fileName}</p>
-                      <p className="text-sm text-muted-foreground">2.4 MB | 1,234 satır | 22 kolon</p>
+                      <p className="font-medium text-foreground">{fileName || jobDetail?.file_name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {jobDetail?.total_rows || 0} satır
+                      </p>
                     </div>
                   </div>
                   <Button variant="ghost" size="icon" onClick={handleReset}>
@@ -228,75 +348,65 @@ const ImportPage = () => {
               <CardContent className="pt-0 space-y-3">
                 <div className="flex items-center gap-2 text-success">
                   <Check className="w-4 h-4" />
-                  <span>1,189 satır geçerli</span>
+                  <span>{jobDetail?.valid_rows || 0} satır geçerli</span>
                 </div>
-                <div className="flex items-center gap-2 text-warning">
-                  <AlertTriangle className="w-4 h-4" />
-                  <span>42 satır uyarı (eksik opsiyonel alan)</span>
-                </div>
-                <div className="flex items-center gap-2 text-destructive">
-                  <AlertCircle className="w-4 h-4" />
-                  <span>3 satır hatalı</span>
-                </div>
+                {(jobDetail?.error_rows || 0) > 0 && (
+                  <div className="flex items-center gap-2 text-destructive">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>{jobDetail?.error_rows || 0} satır hatalı</span>
+                  </div>
+                )}
 
-                <Collapsible open={errorsOpen} onOpenChange={setErrorsOpen}>
-                  <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm" className="gap-1 -ml-2">
-                      Hataları Görüntüle
-                      <ChevronDown className={`w-4 h-4 transition-transform ${errorsOpen ? "rotate-180" : ""}`} />
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <div className="bg-muted rounded-lg p-3 mt-2 text-sm space-y-1">
-                      <p className="text-destructive">Satır 45: "price" alanı boş</p>
-                      <p className="text-destructive">Satır 123: "listing_type" geçersiz değer: "satilik" (beklenen: sale)</p>
-                      <p className="text-destructive">Satır 789: "city" alanı boş</p>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
+                {jobDetail?.errors && jobDetail.errors.length > 0 && (
+                  <Collapsible open={errorsOpen} onOpenChange={setErrorsOpen}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" className="gap-1 -ml-2">
+                        Hataları Görüntüle
+                        <ChevronDown className={`w-4 h-4 transition-transform ${errorsOpen ? "rotate-180" : ""}`} />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="bg-muted rounded-lg p-3 mt-2 text-sm space-y-1">
+                        {jobDetail.errors.map((error: ImportError, index: number) => (
+                          <p key={index} className="text-destructive">
+                            Satır {error.row}: "{error.field}" - {error.message}
+                          </p>
+                        ))}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
               </CardContent>
             </Card>
 
             {/* Preview Table */}
-            <Card>
+            <Card data-testid="import-preview">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Ön İzleme (ilk 5 satır)</CardTitle>
+                <CardTitle className="text-base">Ön İzleme (ilk {jobDetail?.preview?.length || 0} satır)</CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>title</TableHead>
-                      <TableHead>city</TableHead>
-                      <TableHead>district</TableHead>
-                      <TableHead>price</TableHead>
-                      <TableHead>rooms</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell>2+1 Daire</TableCell>
-                      <TableCell>İstanbul</TableCell>
-                      <TableCell>Kadıköy</TableCell>
-                      <TableCell>12500000</TableCell>
-                      <TableCell>2+1</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>3+1 Villa</TableCell>
-                      <TableCell>Ankara</TableCell>
-                      <TableCell>Çankaya</TableCell>
-                      <TableCell>8500000</TableCell>
-                      <TableCell>3+1</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>1+1 Stüdyo</TableCell>
-                      <TableCell>İzmir</TableCell>
-                      <TableCell>Karşıyaka</TableCell>
-                      <TableCell>4200000</TableCell>
-                      <TableCell>1+1</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                {jobDetail?.preview && jobDetail.preview.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        {Object.keys(jobDetail.preview[0]).map((key) => (
+                          <TableHead key={key}>{key}</TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {jobDetail.preview.map((row, rowIndex) => (
+                        <TableRow key={rowIndex}>
+                          {Object.values(row).map((value, cellIndex) => (
+                            <TableCell key={cellIndex}>{value}</TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <p className="text-muted-foreground text-sm">Önizleme verisi yok</p>
+                )}
               </CardContent>
             </Card>
 
@@ -307,21 +417,23 @@ const ImportPage = () => {
               </CardHeader>
               <CardContent className="pt-0 space-y-3">
                 <div className="flex items-center space-x-2">
-                  <Checkbox id="skip-errors" defaultChecked />
+                  <Checkbox
+                    id="skip-errors"
+                    checked={skipErrors}
+                    onCheckedChange={(checked) => setSkipErrors(checked as boolean)}
+                  />
                   <Label htmlFor="skip-errors" className="font-normal cursor-pointer">
                     Hatalı satırları atla ve devam et
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Checkbox id="update-existing" />
+                  <Checkbox
+                    id="update-existing"
+                    checked={updateExisting}
+                    onCheckedChange={(checked) => setUpdateExisting(checked as boolean)}
+                  />
                   <Label htmlFor="update-existing" className="font-normal cursor-pointer">
-                    Mevcut ilanları güncelle (external_id eşleşirse)
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="ai-analysis" defaultChecked />
-                  <Label htmlFor="ai-analysis" className="font-normal cursor-pointer">
-                    AI analizi otomatik çalıştır (sonra)
+                    Mevcut ilanları güncelle (başlık, şehir, ilçe eşleşirse)
                   </Label>
                 </div>
               </CardContent>
@@ -330,8 +442,8 @@ const ImportPage = () => {
             {/* Actions */}
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={handleReset}>İptal</Button>
-              <Button onClick={handleImport} className="gap-2">
-                🚀 Import Başlat
+              <Button data-testid="import-confirm" onClick={handleImport} className="gap-2" disabled={!importId}>
+                Import Başlat
               </Button>
             </div>
           </motion.div>
@@ -353,15 +465,13 @@ const ImportPage = () => {
                 <div className="text-center space-y-2">
                   <p className="text-2xl font-semibold">{progress}%</p>
                   <p className="text-muted-foreground">
-                    İşlenen: {Math.round(progress * 12.34)} / 1,234 satır
+                    İşlenen: {jobDetail?.total_rows ? Math.round((progress / 100) * jobDetail.total_rows) : 0} / {jobDetail?.total_rows || 0} satır
                   </p>
                   <div className="flex justify-center gap-6 text-sm">
-                    <span className="text-success">✅ Başarılı: {Math.round(progress * 12.1)}</span>
-                    <span className="text-destructive">❌ Hatalı: {Math.round(progress * 0.08)}</span>
+                    <span className="text-success">Eklenen: {jobDetail?.created_count || 0}</span>
+                    <span className="text-warning">Güncellenen: {jobDetail?.updated_count || 0}</span>
+                    <span className="text-destructive">Hatalı: {jobDetail?.error_rows || 0}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Tahmini kalan süre: ~{Math.round((100 - progress) / 2)} saniye
-                  </p>
                 </div>
                 <div className="flex justify-center">
                   <Button variant="outline" onClick={handleReset}>İptal Et</Button>
@@ -378,23 +488,51 @@ const ImportPage = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
           >
-            <Card>
+            <Card data-testid="import-history">
               <CardContent className="p-8 text-center">
-                <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Check className="w-8 h-8 text-success" />
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                  jobDetail?.status === "failed" ? "bg-destructive/10" : "bg-success/10"
+                }`}>
+                  {jobDetail?.status === "failed" ? (
+                    <AlertCircle className="w-8 h-8 text-destructive" />
+                  ) : (
+                    <Check className="w-8 h-8 text-success" />
+                  )}
                 </div>
-                <h2 className="text-2xl font-semibold text-foreground mb-2">Import Tamamlandı!</h2>
+                <h2 className="text-2xl font-semibold text-foreground mb-2">
+                  {jobDetail?.status === "failed" ? "Import Başarısız" : "Import Tamamlandı!"}
+                </h2>
                 <div className="text-muted-foreground space-y-1 mb-6">
-                  <p>Toplam: 1,234 satır</p>
-                  <p className="text-success">✅ Başarılı: 1,226 ilan eklendi</p>
-                  <p className="text-destructive">❌ Hatalı: 8 satır atlandı</p>
+                  <p>Toplam: {jobDetail?.total_rows || 0} satır</p>
+                  <p className="text-success">Eklenen: {jobDetail?.created_count || 0} ilan</p>
+                  <p className="text-warning">Güncellenen: {jobDetail?.updated_count || 0} ilan</p>
+                  {(jobDetail?.error_rows || 0) > 0 && (
+                    <p className="text-destructive">Hatalı: {jobDetail?.error_rows || 0} satır</p>
+                  )}
                 </div>
-                <Button variant="outline" className="mb-6">
-                  Hata Raporunu İndir
-                </Button>
+
+                {/* Show errors if import failed */}
+                {jobDetail?.status === "failed" && jobDetail?.errors && jobDetail.errors.length > 0 && (
+                  <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-6 text-left">
+                    <p className="font-medium text-destructive mb-2">Hatalar:</p>
+                    <div className="text-sm space-y-1">
+                      {jobDetail.errors.slice(0, 5).map((error: ImportError, index: number) => (
+                        <p key={index} className="text-destructive">
+                          Satır {error.row}: "{error.field}" - {error.message}
+                        </p>
+                      ))}
+                      {jobDetail.errors.length > 5 && (
+                        <p className="text-muted-foreground">
+                          ... ve {jobDetail.errors.length - 5} hata daha
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex justify-center gap-3">
                   <Button variant="outline" onClick={handleReset}>Yeni Import</Button>
-                  <Link to="/listings">
+                  <Link to="/admin/listings">
                     <Button className="gap-2">
                       İlanları Görüntüle
                       <ArrowRight className="w-4 h-4" />

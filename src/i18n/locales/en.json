@@ -1,0 +1,58 @@
+{
+  "auth": {
+    "errors": {
+      "AUTH_FAILED": "Invalid email or password.",
+      "TOKEN_EXPIRED": "Session expired. Please log in again.",
+      "TOKEN_INVALID": "Invalid session. Please log in again.",
+      "USER_INACTIVE": "Your account has been deactivated.",
+      "CURRENT_PASSWORD_WRONG": "Current password is incorrect.",
+      "VALIDATION_ERROR": "Please fill in all fields."
+    }
+  },
+  "common": {
+    "errors": {
+      "SERVER_ERROR": "Server error. Please try again later.",
+      "NOT_FOUND": "Resource not found.",
+      "CONFLICT": "This resource already exists.",
+      "PERMISSION_DENIED": "You do not have permission for this action."
+    }
+  },
+  "nav": {
+    "search": "Search",
+    "listings": "Listings",
+    "import": "Import",
+    "favorites": "Favorites",
+    "dashboard": "Dashboard",
+    "compare": "Compare",
+    "reports": "Reports",
+    "settings": "Settings"
+  },
+  "login": {
+    "title": "Login",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Login",
+    "loading": "Logging in..."
+  },
+  "search": {
+    "placeholder": "Search city...",
+    "button": "Search",
+    "noResults": "No results found.",
+    "semanticPlaceholder": "Search in natural language...",
+    "semanticButton": "Search"
+  },
+  "import": {
+    "dropzone": "Drag file here or click",
+    "downloadTemplate": "Download Template",
+    "preview": "Preview",
+    "confirm": "Confirm Import",
+    "history": "Import History"
+  },
+  "ai": {
+    "panel": "AI Analysis",
+    "priceScore": "Price Score",
+    "askButton": "Ask AI",
+    "inputPlaceholder": "Type your question...",
+    "submitButton": "Submit"
+  }
+}

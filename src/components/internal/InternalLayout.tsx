@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
+import { Link, useLocation, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Home,
@@ -25,6 +25,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { icon: Search, label: "Arama", path: "/search" },
@@ -43,23 +44,22 @@ const InternalLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
-  const user = JSON.parse(localStorage.getItem("user") || '{"name": "Kullanıcı", "role": "Danışman"}');
+  const displayName = user?.full_name || user?.email || 'Kullanıcı';
 
-  const handleLogout = () => {
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("user");
-    navigate("/login");
+  const handleLogout = async () => {
+    await logout();
   };
 
   const NavLink = ({ item, onClick }: { item: typeof navItems[0]; onClick?: () => void }) => {
     const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
-    
+
     return (
       <Link
         to={item.path}
         onClick={onClick}
+        data-testid={item.path === "/search" ? "nav-search" : undefined}
         className={cn(
           "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
           isActive
@@ -119,6 +119,7 @@ const InternalLayout = () => {
             <NavLink key={item.path} item={item} />
           ))}
           <button
+            data-testid="logout-button"
             onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10 transition-colors"
           >
@@ -135,8 +136,8 @@ const InternalLayout = () => {
                 <User className="w-5 h-5 text-sidebar-foreground/70" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-sidebar-foreground truncate">{user.name}</p>
-                <p className="text-xs text-sidebar-foreground/60">{user.role}</p>
+                <p className="text-sm font-medium text-sidebar-foreground truncate">{displayName}</p>
+                <p className="text-xs text-sidebar-foreground/60">{user?.role}</p>
               </div>
             </div>
           </div>
@@ -185,8 +186,8 @@ const InternalLayout = () => {
                   <User className="w-5 h-5 text-sidebar-foreground/70" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-sidebar-foreground">{user.name}</p>
-                  <p className="text-xs text-sidebar-foreground/60">{user.role}</p>
+                  <p className="text-sm font-medium text-sidebar-foreground">{displayName}</p>
+                  <p className="text-xs text-sidebar-foreground/60">{user?.role}</p>
                 </div>
               </div>
             </div>
@@ -208,7 +209,7 @@ const InternalLayout = () => {
               <Menu className="w-5 h-5" />
             </Button>
             <h2 className="font-semibold text-foreground hidden md:block">
-              {navItems.find(item => location.pathname.startsWith(item.path))?.label || 
+              {navItems.find(item => location.pathname.startsWith(item.path))?.label ||
                bottomNavItems.find(item => location.pathname.startsWith(item.path))?.label ||
                "Dashboard"}
             </h2>
@@ -219,14 +220,14 @@ const InternalLayout = () => {
               <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
             </Button>
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="gap-2">
                   <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
                     <User className="w-4 h-4" />
                   </div>
-                  <span className="hidden md:inline">{user.name.split(" ")[0]}</span>
+                  <span className="hidden md:inline">{displayName.split(" ")[0]}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">

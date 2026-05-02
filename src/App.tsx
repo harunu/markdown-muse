@@ -51,7 +51,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Admin route - requires yonetici or super_admin role
+// Admin route - requires admin or super_admin role
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
 
@@ -63,7 +63,7 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (user?.rol !== 'yonetici' && user?.rol !== 'super_admin') {
+  if (user?.role !== 'admin' && user?.role !== 'super_admin') {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -76,7 +76,7 @@ const AppRoutes = () => (
     {/* Login */}
     <Route path="/login" element={<Login />} />
     <Route path="/premium/checkout" element={<PremiumCheckout />} />
-    <Route path="/premium/aktif" element={<PremiumSuccess />} />
+    <Route path="/premium/success" element={<PremiumSuccess />} />
 
     {/* Redirect root to dashboard */}
     <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -110,7 +110,7 @@ const AppRoutes = () => (
       }
     />
     <Route
-      path="/admin/ilanlar"
+      path="/admin/listings"
       element={
         <AdminRoute>
           <AdminListings />
@@ -126,7 +126,7 @@ const AppRoutes = () => (
       }
     />
     <Route
-      path="/admin/gecmis"
+      path="/admin/history"
       element={
         <AdminRoute>
           <AdminHistory />
@@ -134,7 +134,7 @@ const AppRoutes = () => (
       }
     />
     <Route
-      path="/admin/kalite"
+      path="/admin/quality"
       element={
         <AdminRoute>
           <AdminQuality />
@@ -142,7 +142,7 @@ const AppRoutes = () => (
       }
     />
     <Route
-      path="/admin/analiz"
+      path="/admin/analytics"
       element={
         <AdminRoute>
           <AdminAnalytics />
@@ -150,7 +150,7 @@ const AppRoutes = () => (
       }
     />
     <Route
-      path="/admin/ayarlar"
+      path="/admin/settings"
       element={
         <AdminRoute>
           <AdminSettings />

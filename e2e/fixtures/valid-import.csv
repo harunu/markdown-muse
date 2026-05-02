@@ -1,0 +1,3 @@
+title,description,city,district,price,listing_type,property_type
+Test Listing 1,Nice apartment,Istanbul,Kadikoy,12500000,sale,apartment
+Test Listing 2,Office space,Istanbul,Besiktas,25000000,sale,commercial

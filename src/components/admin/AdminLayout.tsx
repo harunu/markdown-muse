@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
-import { 
-  LayoutDashboard, FileText, Upload, History, 
+import {
+  LayoutDashboard, FileText, Upload, History,
   Database, BarChart3, Settings, Bell, User,
   ChevronLeft, ChevronRight, LogOut
 } from "lucide-react";
@@ -11,12 +11,12 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
-  { icon: FileText, label: "İlan Yönetimi", path: "/admin/ilanlar" },
+  { icon: FileText, label: "İlan Yönetimi", path: "/admin/listings" },
   { icon: Upload, label: "CSV Import", path: "/admin/import" },
-  { icon: History, label: "Import Geçmişi", path: "/admin/gecmis" },
-  { icon: Database, label: "Veri Kalitesi", path: "/admin/kalite" },
-  { icon: BarChart3, label: "Analiz", path: "/admin/analiz" },
-  { icon: Settings, label: "Ayarlar", path: "/admin/ayarlar" },
+  { icon: History, label: "Import Geçmişi", path: "/admin/history" },
+  { icon: Database, label: "Veri Kalitesi", path: "/admin/quality" },
+  { icon: BarChart3, label: "Analiz", path: "/admin/analytics" },
+  { icon: Settings, label: "Ayarlar", path: "/admin/settings" },
 ];
 
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
@@ -75,7 +75,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
           })}
         </nav>
 
-        {/* Back to User UI */}
+        {/* Logout */}
         <div className="absolute bottom-4 left-0 right-0 px-2">
           <Button
             variant="ghost"
@@ -98,7 +98,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
           <h1 className="text-lg font-semibold text-foreground">
             {menuItems.find((item) => item.path === location.pathname)?.label || "Admin"}
           </h1>
-          
+
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="w-5 h-5" />
