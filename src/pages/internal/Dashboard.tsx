@@ -16,20 +16,6 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardStats, useRecentSearches } from "@/hooks/useApi";
 
-// Demo/mock data for demo users
-const DEMO_STATS = {
-  total_properties: 12458,
-  today_searches: 34,
-  favorites_count: 127,
-  last_import: { id: 0, file_name: 'demo.csv', status: 'completed', total_rows: 850, successful_rows: 850, failed_rows: 0, date: new Date().toISOString() },
-};
-
-const DEMO_RECENT_SEARCHES = [
-  { id: 1, query: "Kadıköy 3+1 daire", result_count: 48, date: new Date(Date.now() - 3600000).toISOString() },
-  { id: 2, query: "Beşiktaş deniz manzaralı", result_count: 23, date: new Date(Date.now() - 7200000).toISOString() },
-  { id: 3, query: "Üsküdar satılık villa", result_count: 12, date: new Date(Date.now() - 86400000).toISOString() },
-  { id: 4, query: "Ataşehir yeni bina", result_count: 67, date: new Date(Date.now() - 172800000).toISOString() },
-];
 
 // Format relative time in Turkish
 const formatRelativeTime = (dateString: string): string => {
@@ -61,17 +47,9 @@ const quickActions = [
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const isDemoUser = user?.id === 0;
 
-  const { data: apiStats, isLoading: statsLoading, error: statsError } = useDashboardStats();
-  const { data: apiRecentSearches, isLoading: searchesLoading } = useRecentSearches();
-
-  // Use mock data for demo users, real data otherwise
-  const stats = isDemoUser ? DEMO_STATS : apiStats;
-  const recentSearches = isDemoUser ? DEMO_RECENT_SEARCHES : apiRecentSearches;
-  const isStatsLoading = isDemoUser ? false : statsLoading;
-  const isStatsError = isDemoUser ? null : statsError;
-  const isSearchesLoading = isDemoUser ? false : searchesLoading;
+  const { data: stats, isLoading: isStatsLoading, error: isStatsError } = useDashboardStats();
+  const { data: recentSearches, isLoading: isSearchesLoading } = useRecentSearches();
 
   const firstName = user?.full_name?.split(" ")[0] || "Kullanıcı";
 

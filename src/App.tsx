@@ -158,6 +158,9 @@ const AppRoutes = () => (
       }
     />
 
+    {/* Legacy Turkish URL alias */}
+    <Route path="/admin/ilanlar" element={<Navigate to="/admin/listings" replace />} />
+
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

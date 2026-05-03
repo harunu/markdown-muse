@@ -1,26 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   BarChart3,
   TrendingUp,
-  TrendingDown,
   Download,
-  Calendar,
   MapPin,
   Home,
   DollarSign,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -32,65 +23,51 @@ import {
   Pie,
   Cell,
 } from "recharts";
-
-const priceData = [
-  { month: "Oca", kadikoy: 135000, besiktas: 180000, uskudar: 115000 },
-  { month: "Şub", kadikoy: 138000, besiktas: 185000, uskudar: 118000 },
-  { month: "Mar", kadikoy: 142000, besiktas: 190000, uskudar: 120000 },
-  { month: "Nis", kadikoy: 140000, besiktas: 188000, uskudar: 122000 },
-  { month: "May", kadikoy: 145000, besiktas: 195000, uskudar: 125000 },
-  { month: "Haz", kadikoy: 148000, besiktas: 200000, uskudar: 128000 },
-];
-
-const listingsByDistrict = [
-  { name: "Kadıköy", value: 2450, color: "hsl(217, 91%, 60%)" },
-  { name: "Beşiktaş", value: 1890, color: "hsl(160, 84%, 39%)" },
-  { name: "Üsküdar", value: 1650, color: "hsl(38, 92%, 50%)" },
-  { name: "Ataşehir", value: 1420, color: "hsl(280, 65%, 60%)" },
-  { name: "Diğer", value: 5046, color: "hsl(220, 14%, 65%)" },
-];
-
-const monthlyListings = [
-  { month: "Oca", new: 1234, sold: 890 },
-  { month: "Şub", new: 1456, sold: 1020 },
-  { month: "Mar", new: 1678, sold: 1150 },
-  { month: "Nis", new: 1890, sold: 1280 },
-  { month: "May", new: 2100, sold: 1420 },
-  { month: "Haz", new: 2340, sold: 1580 },
-];
-
-const statsCards = [
-  {
-    title: "Ortalama m² Fiyatı",
-    value: "₺142,500",
-    change: "+8.2%",
-    trend: "up",
-    icon: DollarSign,
-  },
-  {
-    title: "Toplam İlan",
-    value: "12,456",
-    change: "+234",
-    trend: "up",
-    icon: Home,
-  },
-  {
-    title: "Aktif Bölge",
-    value: "15",
-    change: "+2",
-    trend: "up",
-    icon: MapPin,
-  },
-  {
-    title: "Aylık Satış",
-    value: "1,580",
-    change: "-3.1%",
-    trend: "down",
-    icon: BarChart3,
-  },
-];
+import { useReportsSummary } from "@/hooks/useApi";
 
 const ReportsPage = () => {
+  const { data, isLoading, error } = useReportsSummary();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-destructive">
+        <AlertCircle className="w-10 h-10 mb-3" />
+        <p>Rapor verileri yüklenirken bir hata oluştu.</p>
+      </div>
+    );
+  }
+
+  const statsCards = [
+    {
+      title: "Ortalama m² Fiyatı",
+      value: `₺${data.stats.avg_price_per_sqm.toLocaleString("tr-TR")}`,
+      icon: DollarSign,
+    },
+    {
+      title: "Toplam İlan",
+      value: data.stats.total_listings.toLocaleString("tr-TR"),
+      icon: Home,
+    },
+    {
+      title: "Aktif Şehir",
+      value: data.stats.city_count.toString(),
+      icon: MapPin,
+    },
+    {
+      title: "Aylık Yeni İlan",
+      value: (data.monthly_trend[data.monthly_trend.length - 1]?.count ?? 0).toLocaleString("tr-TR"),
+      icon: BarChart3,
+    },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -103,24 +80,10 @@ const ReportsPage = () => {
           <h1 className="text-2xl font-semibold text-foreground">Raporlar</h1>
           <p className="text-muted-foreground">Piyasa analizi ve istatistikler</p>
         </div>
-        <div className="flex gap-2">
-          <Select defaultValue="last-6">
-            <SelectTrigger className="w-40">
-              <Calendar className="w-4 h-4 mr-2" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="last-30">Son 30 gün</SelectItem>
-              <SelectItem value="last-3">Son 3 ay</SelectItem>
-              <SelectItem value="last-6">Son 6 ay</SelectItem>
-              <SelectItem value="last-12">Son 12 ay</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" className="gap-2">
-            <Download className="w-4 h-4" />
-            Rapor İndir
-          </Button>
-        </div>
+        <Button variant="outline" className="gap-2" disabled>
+          <Download className="w-4 h-4" />
+          Rapor İndir
+        </Button>
       </motion.div>
 
       {/* Stats Cards */}
@@ -138,15 +101,9 @@ const ReportsPage = () => {
                   <div>
                     <p className="text-sm text-muted-foreground">{stat.title}</p>
                     <p className="text-2xl font-semibold text-foreground mt-1">{stat.value}</p>
-                    <div className={`flex items-center gap-1 text-sm mt-1 ${
-                      stat.trend === "up" ? "text-success" : "text-destructive"
-                    }`}>
-                      {stat.trend === "up" ? (
-                        <TrendingUp className="w-4 h-4" />
-                      ) : (
-                        <TrendingDown className="w-4 h-4" />
-                      )}
-                      {stat.change}
+                    <div className="flex items-center gap-1 text-sm mt-1 text-success">
+                      <TrendingUp className="w-4 h-4" />
+                      gerçek veri
                     </div>
                   </div>
                   <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -161,7 +118,7 @@ const ReportsPage = () => {
 
       {/* Charts Row */}
       <div className="grid lg:grid-cols-2 gap-6">
-        {/* Price Trend */}
+        {/* Monthly trend bar chart */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -169,49 +126,36 @@ const ReportsPage = () => {
         >
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">m² Fiyat Trendi (₺)</CardTitle>
+              <CardTitle className="text-base">Aylık Yeni İlan Sayısı</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={priceData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="month" className="text-xs" />
-                  <YAxis className="text-xs" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px"
-                    }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="kadikoy" 
-                    stroke="hsl(217, 91%, 60%)" 
-                    strokeWidth={2}
-                    name="Kadıköy"
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="besiktas" 
-                    stroke="hsl(160, 84%, 39%)" 
-                    strokeWidth={2}
-                    name="Beşiktaş"
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="uskudar" 
-                    stroke="hsl(38, 92%, 50%)" 
-                    strokeWidth={2}
-                    name="Üsküdar"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              {data.monthly_trend.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-8 text-center">Henüz veri yok.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={data.monthly_trend}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                    />
+                    <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Bar dataKey="count" fill="#3b82f6" name="Yeni İlan" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Listings by District */}
+        {/* City breakdown pie chart */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -219,48 +163,52 @@ const ReportsPage = () => {
         >
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">İlçeye Göre İlanlar</CardTitle>
+              <CardTitle className="text-base">Şehirlere Göre İlanlar</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-8">
-                <ResponsiveContainer width="50%" height={250}>
-                  <PieChart>
-                    <Pie
-                      data={listingsByDistrict}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={2}
-                      dataKey="value"
-                    >
-                      {listingsByDistrict.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="space-y-2">
-                  {listingsByDistrict.map((item) => (
-                    <div key={item.name} className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: item.color }}
-                      />
-                      <span className="text-sm">{item.name}</span>
-                      <span className="text-sm text-muted-foreground ml-auto">
-                        {item.value.toLocaleString()}
-                      </span>
-                    </div>
-                  ))}
+              {data.city_breakdown.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-8 text-center">Henüz ilan yok.</p>
+              ) : (
+                <div className="flex items-center gap-6">
+                  <ResponsiveContainer width="50%" height={250}>
+                    <PieChart>
+                      <Pie
+                        data={data.city_breakdown}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={55}
+                        outerRadius={95}
+                        paddingAngle={2}
+                        dataKey="count"
+                      >
+                        {data.city_breakdown.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="space-y-2 flex-1">
+                    {data.city_breakdown.map((item) => (
+                      <div key={item.city} className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <span className="text-sm truncate">{item.city}</span>
+                        <span className="text-sm text-muted-foreground ml-auto">
+                          {item.count.toLocaleString("tr-TR")}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
       </div>
 
-      {/* Monthly Listings Chart */}
+      {/* City avg price bar chart */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -268,25 +216,35 @@ const ReportsPage = () => {
       >
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Aylık İlan Hareketleri</CardTitle>
+            <CardTitle className="text-base">Şehirlere Göre Ortalama Fiyat (₺)</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={monthlyListings}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="month" className="text-xs" />
-                <YAxis className="text-xs" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px"
-                  }}
-                />
-                <Bar dataKey="new" fill="hsl(217, 91%, 60%)" name="Yeni İlan" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="sold" fill="hsl(160, 84%, 39%)" name="Satılan" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {data.city_breakdown.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">Henüz veri yok.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={data.city_breakdown}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis
+                    dataKey="city"
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                  />
+                  <YAxis
+                    tickFormatter={(v: number) => `₺${(v / 1000000).toFixed(1)}M`}
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                  />
+                  <Tooltip
+                    formatter={(v: number) => [`₺${v.toLocaleString("tr-TR")}`, "Ort. Fiyat"]}
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Bar dataKey="avg_price" name="Ort. Fiyat" fill="#10b981" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </motion.div>

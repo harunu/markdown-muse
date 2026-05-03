@@ -281,6 +281,55 @@ export const useConfirmImport = () => {
   });
 };
 
+// Admin stats hook
+export const useAdminStats = () => {
+  return useQuery({
+    queryKey: ['admin', 'stats'],
+    queryFn: async () => {
+      const response = await apiClient.get<{
+        success: boolean;
+        data: {
+          stats: {
+            total_listings: number;
+            active_listings: number;
+            today_updated: number;
+            quality_issues: number;
+          };
+          city_breakdown: { city: string; count: number }[];
+          time_series: { name: string; value: number }[];
+          recent_imports: {
+            id: string;
+            file_name: string;
+            status: string;
+            total_rows: number;
+            valid_rows: number;
+            error_rows: number;
+            created_at: string;
+          }[];
+        };
+      }>('/admin/stats');
+      return response.data.data;
+    },
+  });
+};
+
+export const useReportsSummary = () => {
+  return useQuery({
+    queryKey: ['reports', 'summary'],
+    queryFn: async () => {
+      const response = await apiClient.get<{
+        success: boolean;
+        data: {
+          stats: { total_listings: number; avg_price_per_sqm: number; city_count: number };
+          city_breakdown: { city: string; count: number; avg_price: number; color: string }[];
+          monthly_trend: { month: string; count: number }[];
+        };
+      }>('/reports/summary');
+      return response.data.data;
+    },
+  });
+};
+
 // User/Profile hooks
 export const useCurrentUser = () => {
   return useQuery({

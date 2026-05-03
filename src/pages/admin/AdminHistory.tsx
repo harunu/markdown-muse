@@ -2,75 +2,50 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { History, Download, Eye, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { History, Eye, CheckCircle2, XCircle, Clock, Loader2, AlertCircle } from "lucide-react";
+import { useImportHistory } from "@/hooks/useApi";
+import { Link } from "react-router-dom";
 
-const importHistory = [
-  {
-    id: 1,
-    filename: "istanbul_emlak_2024.csv",
-    date: "2024-01-15 14:30",
-    records: 1250,
-    success: 1245,
-    failed: 5,
-    status: "completed",
+const formatDate = (iso: string) => {
+  return new Date(iso).toLocaleString("tr-TR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const STATUS_MAP: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
+  completed: {
+    label: "Tamamlandı",
+    icon: <CheckCircle2 className="w-3 h-3 mr-1" />,
+    className: "bg-admin-success/10 text-admin-success border-0",
   },
-  {
-    id: 2,
-    filename: "ankara_konut.csv",
-    date: "2024-01-14 10:15",
-    records: 800,
-    success: 800,
-    failed: 0,
-    status: "completed",
+  failed: {
+    label: "Başarısız",
+    icon: <XCircle className="w-3 h-3 mr-1" />,
+    className: "bg-admin-error/10 text-admin-error border-0",
   },
-  {
-    id: 3,
-    filename: "izmir_ticari.csv",
-    date: "2024-01-13 16:45",
-    records: 320,
-    success: 0,
-    failed: 320,
-    status: "failed",
+  processing: {
+    label: "İşleniyor",
+    icon: <Clock className="w-3 h-3 mr-1" />,
+    className: "bg-admin-warning/10 text-admin-warning border-0",
   },
-  {
-    id: 4,
-    filename: "antalya_villa.csv",
-    date: "2024-01-12 09:00",
-    records: 150,
-    success: 75,
-    failed: 0,
-    status: "processing",
+  validating: {
+    label: "Doğrulanıyor",
+    icon: <Clock className="w-3 h-3 mr-1" />,
+    className: "bg-admin-warning/10 text-admin-warning border-0",
   },
-];
+  pending_confirmation: {
+    label: "Onay Bekliyor",
+    icon: <Clock className="w-3 h-3 mr-1" />,
+    className: "bg-admin-blue/10 text-admin-blue border-0",
+  },
+};
 
 const AdminHistory = () => {
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "completed":
-        return (
-          <Badge className="bg-admin-success/10 text-admin-success border-0">
-            <CheckCircle2 className="w-3 h-3 mr-1" />
-            Tamamlandı
-          </Badge>
-        );
-      case "failed":
-        return (
-          <Badge className="bg-admin-error/10 text-admin-error border-0">
-            <XCircle className="w-3 h-3 mr-1" />
-            Başarısız
-          </Badge>
-        );
-      case "processing":
-        return (
-          <Badge className="bg-admin-warning/10 text-admin-warning border-0">
-            <Clock className="w-3 h-3 mr-1" />
-            İşleniyor
-          </Badge>
-        );
-      default:
-        return null;
-    }
-  };
+  const { data: history, isLoading, error } = useImportHistory();
 
   return (
     <AdminLayout>
@@ -80,10 +55,9 @@ const AdminHistory = () => {
             <h2 className="text-2xl font-bold text-foreground">Import Geçmişi</h2>
             <p className="text-muted-foreground">Tüm CSV import işlemlerinin geçmişi</p>
           </div>
-          <Button variant="outline">
-            <Download className="w-4 h-4 mr-2" />
-            Rapor İndir
-          </Button>
+          <Link to="/admin/import">
+            <Button variant="outline">Yeni Import</Button>
+          </Link>
         </div>
 
         <Card>
@@ -94,34 +68,66 @@ const AdminHistory = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {importHistory.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between p-4 bg-muted/50 rounded-lg"
-                >
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">{item.filename}</p>
-                    <p className="text-sm text-muted-foreground">{item.date}</p>
-                  </div>
-                  <div className="flex items-center gap-6">
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-foreground">{item.records} kayıt</p>
-                      <p className="text-xs text-muted-foreground">
-                        <span className="text-admin-success">{item.success} başarılı</span>
-                        {item.failed > 0 && (
-                          <span className="text-admin-error ml-2">{item.failed} hatalı</span>
-                        )}
-                      </p>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : error ? (
+              <div className="flex items-center gap-3 py-6 text-destructive">
+                <AlertCircle className="w-5 h-5" />
+                <span>Import geçmişi yüklenemedi.</span>
+              </div>
+            ) : !history || history.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground text-sm">
+                Henüz import yapılmadı.{" "}
+                <Link to="/admin/import" className="text-admin-blue underline">
+                  CSV yükleyin
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {history.map((item) => {
+                  const statusInfo = STATUS_MAP[item.status] ?? {
+                    label: item.status,
+                    icon: null,
+                    className: "bg-muted text-muted-foreground border-0",
+                  };
+                  return (
+                    <div
+                      key={item.import_id}
+                      className="flex items-center justify-between p-4 bg-muted/50 rounded-lg"
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground">{item.file_name}</p>
+                        <p className="text-sm text-muted-foreground">{formatDate(item.created_at)}</p>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <div className="text-right">
+                          <p className="text-sm font-medium text-foreground">
+                            {item.total_rows} kayıt
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            <span className="text-admin-success">{item.successful_rows} başarılı</span>
+                            {item.failed_rows > 0 && (
+                              <span className="text-admin-error ml-2">{item.failed_rows} hatalı</span>
+                            )}
+                          </p>
+                        </div>
+                        <Badge className={statusInfo.className}>
+                          {statusInfo.icon}
+                          {statusInfo.label}
+                        </Badge>
+                        <Link to={`/admin/import`}>
+                          <Button variant="ghost" size="icon">
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </Link>
+                      </div>
                     </div>
-                    {getStatusBadge(item.status)}
-                    <Button variant="ghost" size="icon">
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

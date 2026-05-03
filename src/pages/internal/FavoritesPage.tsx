@@ -3,15 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -25,49 +17,13 @@ import {
   StickyNote,
   Download,
   GitCompare,
-  Bot,
-  X,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import property1 from "@/assets/property-1.jpg";
-import property2 from "@/assets/property-2.jpg";
-import property3 from "@/assets/property-3.jpg";
-
-const favorites = [
-  {
-    id: "1",
-    image: property1,
-    title: "Kadıköy 2+1 Daire",
-    location: "Kadıköy, İstanbul",
-    price: 12500000,
-    area: 95,
-    aiScore: 72,
-    addedAt: "28 Oca 2025",
-    note: "Görülecek - hafta sonu randevu al",
-  },
-  {
-    id: "2",
-    image: property2,
-    title: "Beşiktaş 3+1 Residence",
-    location: "Beşiktaş, İstanbul",
-    price: 18700000,
-    area: 145,
-    aiScore: 85,
-    addedAt: "25 Oca 2025",
-    note: "",
-  },
-  {
-    id: "3",
-    image: property3,
-    title: "Üsküdar 4+2 Villa",
-    location: "Üsküdar, İstanbul",
-    price: 45000000,
-    area: 280,
-    aiScore: 78,
-    addedAt: "20 Oca 2025",
-    note: "Fiyat pazarlığı yapılabilir",
-  },
-];
+import { useFavorites, useRemoveFavorite, useUpdateFavoriteNote } from "@/hooks/useApi";
+import { useToast } from "@/hooks/use-toast";
+import { Favorite } from "@/types/api";
 
 const formatPrice = (price: number) => {
   if (price >= 1000000) {
@@ -76,22 +32,63 @@ const formatPrice = (price: number) => {
   return `₺${new Intl.NumberFormat("tr-TR").format(price)}`;
 };
 
-const FavoritesPage = () => {
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [notes, setNotes] = useState<Record<string, string>>(
-    Object.fromEntries(favorites.map(f => [f.id, f.note]))
-  );
+const formatDate = (iso: string) => {
+  return new Date(iso).toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric" });
+};
 
-  const toggleSelection = (id: string) => {
+const FavoritesPage = () => {
+  const { toast } = useToast();
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [editingNotes, setEditingNotes] = useState<Record<number, string>>({});
+
+  const { data: favorites, isLoading, error } = useFavorites();
+  const removeMutation = useRemoveFavorite();
+  const updateNoteMutation = useUpdateFavoriteNote();
+
+  const toggleSelection = (id: number) => {
     setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
   };
 
-  const removeFavorite = (id: string) => {
-    // In production, this would call an API
-    console.log("Remove favorite:", id);
+  const handleRemove = async (propertyId: number) => {
+    try {
+      await removeMutation.mutateAsync(propertyId);
+      setSelectedIds(prev => prev.filter(i => i !== propertyId));
+      toast({ title: "Favorilerden kaldırıldı." });
+    } catch {
+      toast({ title: "İşlem başarısız.", variant: "destructive" });
+    }
   };
+
+  const handleSaveNote = async (propertyId: number) => {
+    const note = editingNotes[propertyId] ?? "";
+    try {
+      await updateNoteMutation.mutateAsync({ propertyId, note });
+      toast({ title: "Not kaydedildi." });
+    } catch {
+      toast({ title: "Not kaydedilemedi.", variant: "destructive" });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-destructive">
+        <AlertCircle className="w-10 h-10 mb-3" />
+        <p>Favoriler yüklenirken bir hata oluştu.</p>
+      </div>
+    );
+  }
+
+  const items = favorites ?? [];
 
   return (
     <div className="space-y-6">
@@ -103,7 +100,7 @@ const FavoritesPage = () => {
       >
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Favorilerim</h1>
-          <p className="text-muted-foreground">{favorites.length} ilan</p>
+          <p className="text-muted-foreground">{items.length} ilan</p>
         </div>
         <div className="flex gap-2">
           <Link to="/compare">
@@ -112,144 +109,145 @@ const FavoritesPage = () => {
               Karşılaştır ({selectedIds.length})
             </Button>
           </Link>
-          <Button variant="outline" className="gap-2">
+          <Button variant="outline" className="gap-2" disabled>
             <Download className="w-4 h-4" />
             PDF İndir
           </Button>
         </div>
       </motion.div>
 
-      {/* Sort & Filter */}
-      <div className="flex flex-wrap gap-3">
-        <Select defaultValue="date-desc">
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Sırala" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="date-desc">Eklenme Tarihi ↓</SelectItem>
-            <SelectItem value="date-asc">Eklenme Tarihi ↑</SelectItem>
-            <SelectItem value="price-asc">Fiyat ↑</SelectItem>
-            <SelectItem value="price-desc">Fiyat ↓</SelectItem>
-            <SelectItem value="ai-score">AI Skoru</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select defaultValue="all">
-          <SelectTrigger className="w-32">
-            <SelectValue placeholder="Filtre" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tümü</SelectItem>
-            <SelectItem value="with-notes">Notlu</SelectItem>
-            <SelectItem value="no-notes">Notsuz</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Empty state */}
+      {items.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+          <Star className="w-12 h-12 mb-3 opacity-40" />
+          <p className="text-lg font-medium">Henüz favori eklemediniz.</p>
+          <Link to="/search">
+            <Button variant="link" className="mt-2">İlanlara göz at</Button>
+          </Link>
+        </div>
+      )}
 
       {/* Favorites Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {favorites.map((item, index) => (
-          <motion.div
-            key={item.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card className={`group hover:shadow-card transition-all ${
-              selectedIds.includes(item.id) ? "ring-2 ring-primary" : ""
-            }`}>
-              <CardContent className="p-0">
-                {/* Image */}
-                <div className="relative">
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    className="w-full h-40 object-cover rounded-t-lg"
-                  />
-                  <div className="absolute top-2 left-2">
-                    <Checkbox
-                      checked={selectedIds.includes(item.id)}
-                      onCheckedChange={() => toggleSelection(item.id)}
-                      className="bg-white/90"
-                    />
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-2 right-2 bg-white/90 hover:bg-white text-warning"
-                    onClick={() => removeFavorite(item.id)}
-                  >
-                    <Star className="w-4 h-4 fill-current" />
-                  </Button>
-                  <Badge className="absolute bottom-2 right-2 bg-primary/90">
-                    <Bot className="w-3 h-3 mr-1" />
-                    {item.aiScore}/100
-                  </Badge>
-                </div>
-
-                {/* Info */}
-                <div className="p-4 space-y-3">
-                  <div>
-                    <h3 className="font-semibold text-foreground">{item.title}</h3>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5" />
-                      {item.location}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-lg">{formatPrice(item.price)}</p>
-                      <p className="text-xs text-muted-foreground">{item.area} m²</p>
+      {items.length > 0 && (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {items.map((item: Favorite, index: number) => {
+            const noteValue = editingNotes[item.property.id] ?? item.note;
+            return (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <Card className={`group hover:shadow-card transition-all ${
+                  selectedIds.includes(item.property.id) ? "ring-2 ring-primary" : ""
+                }`}>
+                  <CardContent className="p-0">
+                    {/* Image placeholder */}
+                    <div className="relative">
+                      <div className="w-full h-40 bg-muted rounded-t-lg flex items-center justify-center">
+                        <MapPin className="w-8 h-8 text-muted-foreground/40" />
+                      </div>
+                      <div className="absolute top-2 left-2">
+                        <Checkbox
+                          checked={selectedIds.includes(item.property.id)}
+                          onCheckedChange={() => toggleSelection(item.property.id)}
+                          className="bg-white/90"
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 bg-white/90 hover:bg-white text-warning"
+                        onClick={() => handleRemove(item.property.id)}
+                        disabled={removeMutation.isPending}
+                      >
+                        <Star className="w-4 h-4 fill-current" />
+                      </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Eklendi: {item.addedAt}
-                    </p>
-                  </div>
 
-                  {/* Note */}
-                  <div className="pt-2 border-t">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className={`w-full justify-start gap-2 ${
-                            notes[item.id] ? "text-foreground" : "text-muted-foreground"
-                          }`}
-                        >
-                          <StickyNote className="w-4 h-4" />
-                          {notes[item.id] || "Not ekle..."}
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Not Ekle</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <p className="font-medium">{item.title}</p>
-                            <p className="text-sm text-muted-foreground">{item.location}</p>
-                          </div>
-                          <Textarea
-                            placeholder="Notunuzu yazın..."
-                            value={notes[item.id]}
-                            onChange={(e) => setNotes(prev => ({
-                              ...prev,
-                              [item.id]: e.target.value
-                            }))}
-                            rows={4}
-                          />
-                          <Button className="w-full">Kaydet</Button>
+                    {/* Info */}
+                    <div className="p-4 space-y-3">
+                      <div>
+                        <h3 className="font-semibold text-foreground">{item.property.title}</h3>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5" />
+                          {item.property.district}, {item.property.city}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold text-lg">{formatPrice(item.property.price)}</p>
+                          {item.property.area && (
+                            <p className="text-xs text-muted-foreground">{item.property.area} m²</p>
+                          )}
                         </div>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
+                        <p className="text-xs text-muted-foreground">
+                          Eklendi: {formatDate(item.added_at)}
+                        </p>
+                      </div>
+
+                      {/* Note */}
+                      <div className="pt-2 border-t">
+                        <Dialog onOpenChange={(open) => {
+                          if (open) {
+                            setEditingNotes(prev => ({ ...prev, [item.property.id]: item.note }));
+                          }
+                        }}>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className={`w-full justify-start gap-2 ${
+                                item.note ? "text-foreground" : "text-muted-foreground"
+                              }`}
+                            >
+                              <StickyNote className="w-4 h-4" />
+                              {item.note || "Not ekle..."}
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Not Ekle</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <p className="font-medium">{item.property.title}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {item.property.district}, {item.property.city}
+                                </p>
+                              </div>
+                              <Textarea
+                                placeholder="Notunuzu yazın..."
+                                value={noteValue}
+                                onChange={(e) => setEditingNotes(prev => ({
+                                  ...prev,
+                                  [item.property.id]: e.target.value
+                                }))}
+                                rows={4}
+                              />
+                              <Button
+                                className="w-full"
+                                onClick={() => handleSaveNote(item.property.id)}
+                                disabled={updateNoteMutation.isPending}
+                              >
+                                {updateNoteMutation.isPending ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : "Kaydet"}
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

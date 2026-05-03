@@ -52,20 +52,7 @@ import {
 import { motion } from "framer-motion";
 import { useProperties, useDeleteProperty } from "@/hooks/useApi";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
 import { PropertySummary } from "@/types/api";
-
-// Demo mock listings
-const DEMO_LISTINGS: PropertySummary[] = [
-  { id: 1, title: "Kadıköy Moda 3+1 Deniz Manzaralı", listing_type: "sale", property_type: "apartment", city: "İstanbul", district: "Kadıköy", price: 4500000, room_count: "3+1", area: 145, source: "sahibinden", status: "active", price_per_sqm: 31034, created_at: "2025-01-15", updated_at: "2025-01-20" },
-  { id: 2, title: "Beşiktaş Merkez 2+1 Lüks Daire", listing_type: "sale", property_type: "apartment", city: "İstanbul", district: "Beşiktaş", price: 6200000, room_count: "2+1", area: 110, source: "hepsiemlak", status: "active", price_per_sqm: 56364, created_at: "2025-01-10", updated_at: "2025-01-18" },
-  { id: 3, title: "Üsküdar Çengelköy Villa", listing_type: "sale", property_type: "villa", city: "İstanbul", district: "Üsküdar", price: 12000000, room_count: "5+2", area: 320, source: "emlakjet", status: "active", price_per_sqm: 37500, created_at: "2025-01-08", updated_at: "2025-01-12" },
-  { id: 4, title: "Ataşehir Finanskent 1+1 Stüdyo", listing_type: "rent", property_type: "apartment", city: "İstanbul", district: "Ataşehir", price: 2100000, room_count: "1+1", area: 55, source: "sahibinden", status: "draft", price_per_sqm: 38182, created_at: "2025-01-05", updated_at: "2025-01-06" },
-  { id: 5, title: "Sarıyer Tarabya 4+1 Boğaz Manzara", listing_type: "sale", property_type: "apartment", city: "İstanbul", district: "Sarıyer", price: 15500000, room_count: "4+1", area: 230, source: "hepsiemlak", status: "active", price_per_sqm: 67391, created_at: "2025-01-03", updated_at: "2025-01-15" },
-  { id: 6, title: "Bakırköy Sahil 3+1 Residence", listing_type: "sale", property_type: "residence", city: "İstanbul", district: "Bakırköy", price: 5800000, room_count: "3+1", area: 135, source: "emlakjet", status: "inactive", price_per_sqm: 42963, created_at: "2025-01-01", updated_at: "2025-01-10" },
-  { id: 7, title: "Maltepe Bağdat Caddesi 2+1", listing_type: "sale", property_type: "apartment", city: "İstanbul", district: "Maltepe", price: 3400000, room_count: "2+1", area: 95, source: "sahibinden", status: "active", price_per_sqm: 35789, created_at: "2024-12-28", updated_at: "2025-01-05" },
-  { id: 8, title: "Şişli Nişantaşı 4+1 Penthouse", listing_type: "sale", property_type: "apartment", city: "İstanbul", district: "Şişli", price: 22000000, room_count: "4+1", area: 280, source: "hepsiemlak", status: "active", price_per_sqm: 78571, created_at: "2024-12-20", updated_at: "2025-01-02" },
-];
 
 const formatPrice = (price: number) => {
   if (price >= 1000000) {
@@ -97,8 +84,6 @@ const StatusBadge = ({ status }: { status: string }) => {
 const ListingsPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
-  const isDemoUser = user?.id === 0;
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -126,15 +111,12 @@ const ListingsPage = () => {
   if (statusFilter) queryParams.status = statusFilter;
 
   // API hooks
-  const { data, isLoading: apiLoading, error: apiError, refetch } = useProperties(queryParams);
+  const { data, isLoading, error, refetch } = useProperties(queryParams);
   const deleteMutation = useDeleteProperty();
 
-  // Use mock data for demo users
-  const listings = isDemoUser ? DEMO_LISTINGS : (data?.results || []);
-  const totalItems = isDemoUser ? DEMO_LISTINGS.length : (data?.total || 0);
-  const totalPages = isDemoUser ? 1 : (data?.total_pages || 1);
-  const isLoading = isDemoUser ? false : apiLoading;
-  const error = isDemoUser ? null : apiError;
+  const listings = data?.results || [];
+  const totalItems = data?.total || 0;
+  const totalPages = data?.total_pages || 1;
 
   // Selection handlers
   const toggleSelection = (id: number) => {

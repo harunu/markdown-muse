@@ -1,80 +1,95 @@
-import { 
+import {
   BarChart3, FileText, RefreshCw, AlertTriangle,
-  TrendingUp, TrendingDown, ArrowRight
+  TrendingUp, TrendingDown, Loader2, AlertCircle,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { 
+import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell
+  PieChart, Pie, Cell,
 } from "recharts";
+import { useAdminStats, useImportHistory } from "@/hooks/useApi";
 
-const stats = [
-  { 
-    icon: BarChart3, 
-    label: "Toplam İlan", 
-    value: "12,456", 
-    change: "+245 hafta",
-    trend: "up",
-    color: "bg-admin-blue/10 text-admin-blue"
-  },
-  { 
-    icon: FileText, 
-    label: "Aktif İlan", 
-    value: "11,234", 
-    change: "%90.2",
-    trend: "up",
-    color: "bg-admin-success/10 text-admin-success"
-  },
-  { 
-    icon: RefreshCw, 
-    label: "Bugün Güncelleme", 
-    value: "156", 
-    change: "↑ %12",
-    trend: "up",
-    color: "bg-admin-warning/10 text-admin-warning"
-  },
-  { 
-    icon: AlertTriangle, 
-    label: "Sorunlu Veri", 
-    value: "23", 
-    change: "↓ 5",
-    trend: "down",
-    color: "bg-admin-error/10 text-admin-error"
-  },
-];
+const CITY_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#6b7280"];
 
-const lineChartData = [
-  { name: "1 Mar", value: 12000 },
-  { name: "5 Mar", value: 12100 },
-  { name: "10 Mar", value: 12250 },
-  { name: "15 Mar", value: 12180 },
-  { name: "20 Mar", value: 12350 },
-  { name: "25 Mar", value: 12400 },
-  { name: "30 Mar", value: 12456 },
-];
-
-const pieChartData = [
-  { name: "İstanbul", value: 6500, color: "#3b82f6" },
-  { name: "Ankara", value: 2500, color: "#10b981" },
-  { name: "İzmir", value: 1800, color: "#f59e0b" },
-  { name: "Antalya", value: 1200, color: "#ef4444" },
-  { name: "Diğer", value: 456, color: "#6b7280" },
-];
-
-const recentActivity = [
-  { status: "success", title: "CSV Import tamamlandı", detail: "1,234 ilan", time: "2 dk önce" },
-  { status: "warning", title: "Fiyat güncelleme", detail: "45 ilan", time: "15 dk önce" },
-  { status: "error", title: "Import hatası", detail: "listings_march.csv", time: "1 saat önce" },
-  { status: "success", title: "AI analiz tamamlandı", detail: "Batch #456", time: "2 saat önce" },
-];
+const formatRelativeTime = (iso: string) => {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "az önce";
+  if (mins < 60) return `${mins} dk önce`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} saat önce`;
+  return `${Math.floor(hours / 24)} gün önce`;
+};
 
 const AdminDashboard = () => {
+  const { data, isLoading, error } = useAdminStats();
+  const { data: imports } = useImportHistory();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <Loader2 className="w-8 h-8 animate-spin text-admin-blue" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex items-center gap-3 p-6 text-admin-error">
+        <AlertCircle className="w-5 h-5" />
+        <span>İstatistikler yüklenemedi.</span>
+      </div>
+    );
+  }
+
+  const statCards = [
+    {
+      icon: BarChart3,
+      label: "Toplam İlan",
+      value: data.stats.total_listings.toLocaleString("tr-TR"),
+      change: `${data.stats.active_listings.toLocaleString("tr-TR")} aktif`,
+      trend: "up",
+      color: "bg-admin-blue/10 text-admin-blue",
+    },
+    {
+      icon: FileText,
+      label: "Aktif İlan",
+      value: data.stats.active_listings.toLocaleString("tr-TR"),
+      change: data.stats.total_listings > 0
+        ? `%${((data.stats.active_listings / data.stats.total_listings) * 100).toFixed(1)}`
+        : "%0",
+      trend: "up",
+      color: "bg-admin-success/10 text-admin-success",
+    },
+    {
+      icon: RefreshCw,
+      label: "Bugün Güncelleme",
+      value: data.stats.today_updated.toLocaleString("tr-TR"),
+      change: "ilan",
+      trend: "up",
+      color: "bg-admin-warning/10 text-admin-warning",
+    },
+    {
+      icon: AlertTriangle,
+      label: "Sorunlu Veri",
+      value: data.stats.quality_issues.toLocaleString("tr-TR"),
+      change: "eksik alan",
+      trend: data.stats.quality_issues > 0 ? "down" : "up",
+      color: "bg-admin-error/10 text-admin-error",
+    },
+  ];
+
+  const pieChartData = data.city_breakdown.map((item, i) => ({
+    name: item.city,
+    value: item.count,
+    color: CITY_COLORS[i % CITY_COLORS.length],
+  }));
+
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, index) => (
+        {statCards.map((stat, index) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 20 }}
@@ -113,28 +128,28 @@ const AdminDashboard = () => {
           </h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={lineChartData}>
+              <LineChart data={data.time_series}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis 
-                  dataKey="name" 
+                <XAxis
+                  dataKey="name"
                   tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
                   axisLine={{ stroke: "hsl(var(--border))" }}
                 />
-                <YAxis 
+                <YAxis
                   tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
                   axisLine={{ stroke: "hsl(var(--border))" }}
                 />
-                <Tooltip 
-                  contentStyle={{ 
+                <Tooltip
+                  contentStyle={{
                     backgroundColor: "hsl(var(--card))",
                     border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px"
+                    borderRadius: "8px",
                   }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#3b82f6" 
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#3b82f6"
                   strokeWidth={2}
                   dot={{ fill: "#3b82f6", strokeWidth: 2 }}
                 />
@@ -153,45 +168,48 @@ const AdminDashboard = () => {
           <h3 className="text-lg font-semibold text-foreground mb-4">
             İlanlara Göre Şehirler
           </h3>
-          <div className="h-64 flex items-center">
-            <div className="w-1/2">
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={pieChartData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {pieChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
+          {pieChartData.length === 0 ? (
+            <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">
+              Henüz ilan yok.
             </div>
-            <div className="w-1/2 space-y-2">
-              {pieChartData.map((item) => (
-                <div key={item.name} className="flex items-center gap-2">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className="text-sm text-muted-foreground flex-1">{item.name}</span>
-                  <span className="text-sm font-medium text-foreground">
-                    {item.value.toLocaleString()}
-                  </span>
-                </div>
-              ))}
+          ) : (
+            <div className="h-64 flex items-center">
+              <div className="w-1/2">
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={pieChartData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={2}
+                      dataKey="value"
+                    >
+                      {pieChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="w-1/2 space-y-2">
+                {pieChartData.map((item) => (
+                  <div key={item.name} className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                    <span className="text-sm text-muted-foreground flex-1">{item.name}</span>
+                    <span className="text-sm font-medium text-foreground">
+                      {item.value.toLocaleString("tr-TR")}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </motion.div>
       </div>
 
-      {/* Recent Activity */}
+      {/* Recent Imports */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -199,25 +217,31 @@ const AdminDashboard = () => {
         className="bg-card rounded-xl border border-border"
       >
         <div className="flex items-center justify-between p-4 border-b border-border">
-          <h3 className="text-lg font-semibold text-foreground">Son İşlemler</h3>
-          <Button variant="ghost" size="sm" className="gap-1 text-admin-blue">
-            Tümü <ArrowRight className="w-4 h-4" />
-          </Button>
+          <h3 className="text-lg font-semibold text-foreground">Son Import İşlemleri</h3>
         </div>
         <div className="divide-y divide-border">
-          {recentActivity.map((activity, index) => (
-            <div key={index} className="flex items-center gap-4 p-4">
-              <div className={`w-2 h-2 rounded-full ${
-                activity.status === "success" ? "bg-admin-success" :
-                activity.status === "warning" ? "bg-admin-warning" : "bg-admin-error"
-              }`} />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">{activity.title}</p>
-                <p className="text-xs text-muted-foreground">{activity.detail}</p>
+          {!imports || imports.length === 0 ? (
+            <p className="p-4 text-sm text-muted-foreground">Henüz import yapılmadı.</p>
+          ) : (
+            imports.slice(0, 5).map((job) => (
+              <div key={job.import_id} className="flex items-center gap-4 p-4">
+                <div className={`w-2 h-2 rounded-full ${
+                  job.status === "completed" ? "bg-admin-success" :
+                  job.status === "failed" ? "bg-admin-error" : "bg-admin-warning"
+                }`} />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">{job.file_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {job.successful_rows} başarılı
+                    {job.failed_rows > 0 && `, ${job.failed_rows} hatalı`}
+                  </p>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {formatRelativeTime(job.created_at)}
+                </span>
               </div>
-              <span className="text-xs text-muted-foreground">{activity.time}</span>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </motion.div>
     </div>
