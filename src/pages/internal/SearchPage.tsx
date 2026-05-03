@@ -60,6 +60,18 @@ const getPropertyImage = (index: number) => {
   return images[index % images.length];
 };
 
+const CITY_DISTRICTS: Record<string, string[]> = {
+  mugla: ["Bodrum", "Marmaris", "Fethiye", "Datça", "Milas", "Köyceğiz", "Ortaca", "Ula"],
+  istanbul: ["Kadıköy", "Beşiktaş", "Sarıyer", "Şişli", "Maltepe", "Ataşehir", "Üsküdar", "Bakırköy", "Beylikdüzü"],
+  ankara: ["Çankaya", "Keçiören", "Yenimahalle", "Mamak", "Etimesgut", "Sincan"],
+  izmir: ["Konak", "Karşıyaka", "Bornova", "Buca", "Çiğli", "Bayraklı", "Balçova"],
+  antalya: ["Muratpaşa", "Kepez", "Konyaaltı", "Alanya", "Manavgat", "Serik"],
+  bursa: ["Osmangazi", "Nilüfer", "Yıldırım", "Mudanya", "Gemlik"],
+  konya: ["Selçuklu", "Meram", "Karatay", "Ereğli"],
+  adana: ["Seyhan", "Yüreğir", "Çukurova", "Sarıçam", "Ceyhan"],
+  kocaeli: ["İzmit", "Gebze", "Darıca", "Karamürsel", "Gölcük"],
+};
+
 interface Filters {
   city?: string;
   district?: string;
@@ -299,7 +311,7 @@ const SearchPage = () => {
                 <Label>Sehir</Label>
                 <Select
                   value={filters.city}
-                  onValueChange={(value) => setFilters(prev => ({ ...prev, city: value }))}
+                  onValueChange={(value) => setFilters(prev => ({ ...prev, city: value, district: undefined }))}
                 >
                   <SelectTrigger data-testid="filter-city">
                     <SelectValue placeholder="Şehir seçin" />
@@ -318,33 +330,21 @@ const SearchPage = () => {
                 </Select>
               </div>
 
-              {/* District */}
+              {/* District — synced to selected city */}
               <div className="space-y-2">
                 <Label>İlçe</Label>
                 <Select
                   value={filters.district}
                   onValueChange={(value) => setFilters(prev => ({ ...prev, district: value }))}
+                  disabled={!filters.city}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="İlçe seçin" />
+                    <SelectValue placeholder={filters.city ? "İlçe seçin" : "Önce şehir seçin"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Bodrum">Bodrum</SelectItem>
-                    <SelectItem value="Marmaris">Marmaris</SelectItem>
-                    <SelectItem value="Fethiye">Fethiye</SelectItem>
-                    <SelectItem value="Datça">Datça</SelectItem>
-                    <SelectItem value="Milas">Milas</SelectItem>
-                    <SelectItem value="Kadıköy">Kadıköy</SelectItem>
-                    <SelectItem value="Beşiktaş">Beşiktaş</SelectItem>
-                    <SelectItem value="Sarıyer">Sarıyer</SelectItem>
-                    <SelectItem value="Şişli">Şişli</SelectItem>
-                    <SelectItem value="Maltepe">Maltepe</SelectItem>
-                    <SelectItem value="Çankaya">Çankaya</SelectItem>
-                    <SelectItem value="Konak">Konak</SelectItem>
-                    <SelectItem value="Karşıyaka">Karşıyaka</SelectItem>
-                    <SelectItem value="Muratpaşa">Muratpaşa</SelectItem>
-                    <SelectItem value="Alanya">Alanya</SelectItem>
-                    <SelectItem value="Nilüfer">Nilüfer</SelectItem>
+                    {(CITY_DISTRICTS[filters.city || ""] || []).map(d => (
+                      <SelectItem key={d} value={d}>{d}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
