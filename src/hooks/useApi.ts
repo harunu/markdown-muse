@@ -65,8 +65,8 @@ export const useProperty = (id: number) => {
   return useQuery({
     queryKey: queryKeys.properties.detail(id),
     queryFn: async () => {
-      const response = await apiClient.get<Property>(`/properties/${id}`);
-      return response.data;
+      const response = await apiClient.get<{ success: boolean; data: Property }>(`/properties/${id}`);
+      return response.data.data;
     },
     enabled: !!id,
   });

@@ -311,7 +311,7 @@ const ListingDetailPage = () => {
                     { icon: Bed, label: listing.room_count || "-" },
                     { icon: Maximize, label: listing.area ? `${listing.area}m2` : "-" },
                     { icon: Building, label: listing.floor ? `${listing.floor}/${listing.total_floors || "?"}` : "-" },
-                    { icon: Calendar, label: listing.building_age !== null ? `${listing.building_age} yil` : "-" },
+                    { icon: Calendar, label: listing.building_age != null ? `${listing.building_age} yıl` : "-" },
                     { icon: Flame, label: listing.heating || "-" },
                     { icon: DollarSign, label: listing.listing_type === "sale" ? "Satilik" : "Kiralik" },
                   ].map((item, index) => (
@@ -348,7 +348,7 @@ const ListingDetailPage = () => {
           )}
 
           {/* Additional Features */}
-          {listing.features && listing.features.length > 0 && (
+          {listing.features && listing.features.length > 0 && listing.features.some(f => f.trim()) && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -360,10 +360,10 @@ const ListingDetailPage = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
-                    {listing.features.map((feature) => (
+                    {listing.features.flatMap(f => f.split('|')).filter(f => f.trim()).map((feature) => (
                       <Badge key={feature} variant="secondary" className="gap-1">
                         <Check className="w-3 h-3" />
-                        {feature}
+                        {feature.trim()}
                       </Badge>
                     ))}
                   </div>
