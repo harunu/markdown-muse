@@ -195,24 +195,35 @@ const ListingsPage = () => {
                 className="pl-9"
               />
             </div>
-            <Select value={cityFilter} onValueChange={setCityFilter}>
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="Sehir" />
+            <Select value={cityFilter} onValueChange={(v) => { setCityFilter(v); setDistrictFilter(undefined); }}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="Şehir" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="istanbul">Istanbul</SelectItem>
+                <SelectItem value="mugla">Muğla</SelectItem>
+                <SelectItem value="istanbul">İstanbul</SelectItem>
                 <SelectItem value="ankara">Ankara</SelectItem>
-                <SelectItem value="izmir">Izmir</SelectItem>
+                <SelectItem value="izmir">İzmir</SelectItem>
+                <SelectItem value="antalya">Antalya</SelectItem>
+                <SelectItem value="bursa">Bursa</SelectItem>
+                <SelectItem value="konya">Konya</SelectItem>
+                <SelectItem value="adana">Adana</SelectItem>
+                <SelectItem value="kocaeli">Kocaeli</SelectItem>
               </SelectContent>
             </Select>
             <Select value={districtFilter} onValueChange={setDistrictFilter}>
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="Ilce" />
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="İlçe" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="kadikoy">Kadikoy</SelectItem>
-                <SelectItem value="besiktas">Besiktas</SelectItem>
-                <SelectItem value="uskudar">Uskudar</SelectItem>
+                <SelectItem value="Bodrum">Bodrum</SelectItem>
+                <SelectItem value="Marmaris">Marmaris</SelectItem>
+                <SelectItem value="Fethiye">Fethiye</SelectItem>
+                <SelectItem value="Datça">Datça</SelectItem>
+                <SelectItem value="Kadıköy">Kadıköy</SelectItem>
+                <SelectItem value="Beşiktaş">Beşiktaş</SelectItem>
+                <SelectItem value="Şişli">Şişli</SelectItem>
+                <SelectItem value="Çankaya">Çankaya</SelectItem>
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>

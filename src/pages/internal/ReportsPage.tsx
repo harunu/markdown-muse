@@ -25,6 +25,38 @@ import {
 } from "recharts";
 import { useReportsSummary } from "@/hooks/useApi";
 
+const downloadCsv = (data: NonNullable<ReturnType<typeof useReportsSummary>["data"]>) => {
+  const rows: string[][] = [];
+
+  rows.push(["ÖZET İSTATİSTİKLER"]);
+  rows.push(["Toplam İlan", String(data.stats.total_listings)]);
+  rows.push(["Ortalama m² Fiyatı (₺)", String(data.stats.avg_price_per_sqm)]);
+  rows.push(["Aktif Şehir Sayısı", String(data.stats.city_count)]);
+  rows.push([]);
+
+  rows.push(["ŞEHİR BAZLI DAĞILIM"]);
+  rows.push(["Şehir", "İlan Sayısı", "Ortalama Fiyat (₺)"]);
+  data.city_breakdown.forEach(c => {
+    rows.push([c.city, String(c.count), String(c.avg_price)]);
+  });
+  rows.push([]);
+
+  rows.push(["AYLIK TREND"]);
+  rows.push(["Ay", "Yeni İlan"]);
+  data.monthly_trend.forEach(m => {
+    rows.push([m.month, String(m.count)]);
+  });
+
+  const csv = rows.map(r => r.map(v => `"${v}"`).join(",")).join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `rapor_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
 const ReportsPage = () => {
   const { data, isLoading, error } = useReportsSummary();
 
@@ -80,7 +112,7 @@ const ReportsPage = () => {
           <h1 className="text-2xl font-semibold text-foreground">Raporlar</h1>
           <p className="text-muted-foreground">Piyasa analizi ve istatistikler</p>
         </div>
-        <Button variant="outline" className="gap-2" disabled>
+        <Button variant="outline" className="gap-2" onClick={() => data && downloadCsv(data)}>
           <Download className="w-4 h-4" />
           Rapor İndir
         </Button>

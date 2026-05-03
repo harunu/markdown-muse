@@ -126,11 +126,15 @@ const ListingsManagement = () => {
           onChange={(e) => { setCityFilter(e.target.value); setPage(1); }}
         >
           <option value="">Tüm Şehirler</option>
+          <option value="Mugla">Muğla</option>
           <option value="İstanbul">İstanbul</option>
           <option value="Ankara">Ankara</option>
           <option value="İzmir">İzmir</option>
           <option value="Antalya">Antalya</option>
           <option value="Bursa">Bursa</option>
+          <option value="Konya">Konya</option>
+          <option value="Adana">Adana</option>
+          <option value="Kocaeli">Kocaeli</option>
         </select>
         <select
           className="h-9 px-3 rounded-lg border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-admin-blue/30"

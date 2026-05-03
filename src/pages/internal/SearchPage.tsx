@@ -83,7 +83,7 @@ const SearchPage = () => {
   // Search state
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
   const [filters, setFilters] = useState<Filters>({
-    city: "istanbul",
+    city: "mugla",
   });
   const [sortBy, setSortBy] = useState("price-asc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -305,16 +305,22 @@ const SearchPage = () => {
                     <SelectValue placeholder="Şehir seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="istanbul">Istanbul</SelectItem>
+                    <SelectItem value="mugla">Muğla</SelectItem>
+                    <SelectItem value="istanbul">İstanbul</SelectItem>
                     <SelectItem value="ankara">Ankara</SelectItem>
-                    <SelectItem value="izmir">Izmir</SelectItem>
+                    <SelectItem value="izmir">İzmir</SelectItem>
+                    <SelectItem value="antalya">Antalya</SelectItem>
+                    <SelectItem value="bursa">Bursa</SelectItem>
+                    <SelectItem value="konya">Konya</SelectItem>
+                    <SelectItem value="adana">Adana</SelectItem>
+                    <SelectItem value="kocaeli">Kocaeli</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {/* District */}
               <div className="space-y-2">
-                <Label>Ilce</Label>
+                <Label>İlçe</Label>
                 <Select
                   value={filters.district}
                   onValueChange={(value) => setFilters(prev => ({ ...prev, district: value }))}
@@ -323,10 +329,22 @@ const SearchPage = () => {
                     <SelectValue placeholder="İlçe seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="kadikoy">Kadikoy</SelectItem>
-                    <SelectItem value="besiktas">Besiktas</SelectItem>
-                    <SelectItem value="uskudar">Uskudar</SelectItem>
-                    <SelectItem value="atasehir">Atasehir</SelectItem>
+                    <SelectItem value="Bodrum">Bodrum</SelectItem>
+                    <SelectItem value="Marmaris">Marmaris</SelectItem>
+                    <SelectItem value="Fethiye">Fethiye</SelectItem>
+                    <SelectItem value="Datça">Datça</SelectItem>
+                    <SelectItem value="Milas">Milas</SelectItem>
+                    <SelectItem value="Kadıköy">Kadıköy</SelectItem>
+                    <SelectItem value="Beşiktaş">Beşiktaş</SelectItem>
+                    <SelectItem value="Sarıyer">Sarıyer</SelectItem>
+                    <SelectItem value="Şişli">Şişli</SelectItem>
+                    <SelectItem value="Maltepe">Maltepe</SelectItem>
+                    <SelectItem value="Çankaya">Çankaya</SelectItem>
+                    <SelectItem value="Konak">Konak</SelectItem>
+                    <SelectItem value="Karşıyaka">Karşıyaka</SelectItem>
+                    <SelectItem value="Muratpaşa">Muratpaşa</SelectItem>
+                    <SelectItem value="Alanya">Alanya</SelectItem>
+                    <SelectItem value="Nilüfer">Nilüfer</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -449,7 +467,7 @@ const SearchPage = () => {
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={() => setFilters({ city: "istanbul" })}
+                  onClick={() => setFilters({ city: "mugla" })}
                 >
                   Filtreleri Temizle
                 </Button>
