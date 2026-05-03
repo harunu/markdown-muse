@@ -282,6 +282,24 @@ export const useConfirmImport = () => {
 };
 
 // Admin stats hook
+export const useBulkStatusUpdate = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ ids, status }: { ids: number[]; status: 'active' | 'inactive' | 'draft' }) => {
+      const response = await apiClient.post('/properties/bulk-action/', {
+        operation: 'update_status',
+        ids,
+        status,
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.properties.all });
+    },
+  });
+};
+
 export const useAdminStats = () => {
   return useQuery({
     queryKey: ['admin', 'stats'],
@@ -322,6 +340,7 @@ export const useReportsSummary = () => {
         data: {
           stats: { total_listings: number; avg_price_per_sqm: number; city_count: number };
           city_breakdown: { city: string; count: number; avg_price: number; color: string }[];
+          district_breakdown: { city: string; count: number; avg_price: number; color: string }[];
           monthly_trend: { month: string; count: number }[];
         };
       }>('/reports/summary');

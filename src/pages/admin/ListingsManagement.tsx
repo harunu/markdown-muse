@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import {
   Search, Plus, Upload, MoreHorizontal,
   Eye, Trash2, Check, Loader2, AlertCircle, ChevronLeft, ChevronRight,
+  ToggleLeft, ToggleRight,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -24,7 +25,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useProperties, useDeleteProperty } from "@/hooks/useApi";
+import { useProperties, useDeleteProperty, useBulkStatusUpdate } from "@/hooks/useApi";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { CITIES } from "@/lib/cityDistricts";
@@ -60,6 +61,27 @@ const ListingsManagement = () => {
 
   const { data, isLoading, error } = useProperties(params);
   const deleteMutation = useDeleteProperty();
+  const bulkStatusMutation = useBulkStatusUpdate();
+
+  const handleBulkStatus = async (status: 'active' | 'inactive') => {
+    if (selectedIds.length === 0) return;
+    try {
+      await bulkStatusMutation.mutateAsync({ ids: selectedIds, status });
+      toast({ title: `${selectedIds.length} ilan ${status === 'active' ? 'aktif' : 'pasif'} yapıldı.` });
+      setSelectedIds([]);
+    } catch {
+      toast({ title: "İşlem başarısız.", variant: "destructive" });
+    }
+  };
+
+  const handleSingleStatus = async (id: number, status: 'active' | 'inactive') => {
+    try {
+      await bulkStatusMutation.mutateAsync({ ids: [id], status });
+      toast({ title: `İlan ${status === 'active' ? 'aktif' : 'pasif'} yapıldı.` });
+    } catch {
+      toast({ title: "İşlem başarısız.", variant: "destructive" });
+    }
+  };
 
   const listings = data?.results ?? [];
   const total = data?.total ?? 0;
@@ -153,9 +175,13 @@ const ListingsManagement = () => {
           <span className="text-sm text-admin-blue font-medium">
             {selectedIds.length} ilan seçildi
           </span>
-          <Button variant="default" size="sm" className="gap-1">
-            <Check className="w-3 h-3" />
+          <Button variant="default" size="sm" className="gap-1" onClick={() => handleBulkStatus('active')} disabled={bulkStatusMutation.isPending}>
+            <ToggleRight className="w-3 h-3" />
             Aktif Yap
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1" onClick={() => handleBulkStatus('inactive')} disabled={bulkStatusMutation.isPending}>
+            <ToggleLeft className="w-3 h-3" />
+            Pasif Yap
           </Button>
           <Button
             variant="destructive"
@@ -268,6 +294,18 @@ const ListingsManagement = () => {
                               <Eye className="w-4 h-4 mr-2" />
                               Görüntüle
                             </DropdownMenuItem>
+                            {listing.status !== 'active' && (
+                              <DropdownMenuItem onClick={() => handleSingleStatus(listing.id, 'active')}>
+                                <ToggleRight className="w-4 h-4 mr-2 text-admin-success" />
+                                Aktif Yap
+                              </DropdownMenuItem>
+                            )}
+                            {listing.status !== 'inactive' && (
+                              <DropdownMenuItem onClick={() => handleSingleStatus(listing.id, 'inactive')}>
+                                <ToggleLeft className="w-4 h-4 mr-2 text-muted-foreground" />
+                                Pasif Yap
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem
                               className="text-destructive"
                               onClick={() => setDeleteId(listing.id)}
