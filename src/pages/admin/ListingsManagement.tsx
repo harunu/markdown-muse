@@ -27,6 +27,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useProperties, useDeleteProperty } from "@/hooks/useApi";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { CITIES } from "@/lib/cityDistricts";
 
 const formatPrice = (value: number) => {
   if (value >= 1000000) return `₺${(value / 1000000).toFixed(1)}M`;
@@ -126,15 +127,9 @@ const ListingsManagement = () => {
           onChange={(e) => { setCityFilter(e.target.value); setPage(1); }}
         >
           <option value="">Tüm Şehirler</option>
-          <option value="Mugla">Muğla</option>
-          <option value="İstanbul">İstanbul</option>
-          <option value="Ankara">Ankara</option>
-          <option value="İzmir">İzmir</option>
-          <option value="Antalya">Antalya</option>
-          <option value="Bursa">Bursa</option>
-          <option value="Konya">Konya</option>
-          <option value="Adana">Adana</option>
-          <option value="Kocaeli">Kocaeli</option>
+          {CITIES.map((c) => (
+            <option key={c.value} value={c.label}>{c.label}</option>
+          ))}
         </select>
         <select
           className="h-9 px-3 rounded-lg border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-admin-blue/30"

@@ -38,6 +38,17 @@ import { motion } from "framer-motion";
 import { useSearch, useAiChat, useSaveSearch, useAddFavorite, useRemoveFavorite, useFavorites } from "@/hooks/useApi";
 import { PropertySummary, SearchRequest } from "@/types/api";
 import { useToast } from "@/hooks/use-toast";
+import { CITIES, CITY_DISTRICTS } from "@/lib/cityDistricts";
+
+// Map frontend sort labels → backend sort_by values
+const SORT_MAP: Record<string, string> = {
+  "price-asc": "price",
+  "price-desc": "-price",
+  "date-desc": "-created_at",
+  "date-asc": "created_at",
+  "area-asc": "area",
+  "area-desc": "-area",
+};
 
 // Format price with Turkish locale
 const formatPrice = (price: number) => {
@@ -58,18 +69,6 @@ const getPropertyImage = (index: number) => {
     "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&h=300&fit=crop",
   ];
   return images[index % images.length];
-};
-
-const CITY_DISTRICTS: Record<string, string[]> = {
-  mugla: ["Bodrum", "Marmaris", "Fethiye", "Datça", "Milas", "Köyceğiz", "Ortaca", "Ula"],
-  istanbul: ["Kadıköy", "Beşiktaş", "Sarıyer", "Şişli", "Maltepe", "Ataşehir", "Üsküdar", "Bakırköy", "Beylikdüzü"],
-  ankara: ["Çankaya", "Keçiören", "Yenimahalle", "Mamak", "Etimesgut", "Sincan"],
-  izmir: ["Konak", "Karşıyaka", "Bornova", "Buca", "Çiğli", "Bayraklı", "Balçova"],
-  antalya: ["Muratpaşa", "Kepez", "Konyaaltı", "Alanya", "Manavgat", "Serik"],
-  bursa: ["Osmangazi", "Nilüfer", "Yıldırım", "Mudanya", "Gemlik"],
-  konya: ["Selçuklu", "Meram", "Karatay", "Ereğli"],
-  adana: ["Seyhan", "Yüreğir", "Çukurova", "Sarıçam", "Ceyhan"],
-  kocaeli: ["İzmit", "Gebze", "Darıca", "Karamürsel", "Gölcük"],
 };
 
 interface Filters {
@@ -157,7 +156,7 @@ const SearchPage = () => {
         area_max: filters.area_max,
         room_count: filters.room_count?.[0],
       },
-      sort_by: sortBy,
+      sort_by: SORT_MAP[sortBy] ?? "-created_at",
       page: newPage || currentPage,
       page_size: 20,
     };
@@ -317,15 +316,9 @@ const SearchPage = () => {
                     <SelectValue placeholder="Şehir seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="mugla">Muğla</SelectItem>
-                    <SelectItem value="istanbul">İstanbul</SelectItem>
-                    <SelectItem value="ankara">Ankara</SelectItem>
-                    <SelectItem value="izmir">İzmir</SelectItem>
-                    <SelectItem value="antalya">Antalya</SelectItem>
-                    <SelectItem value="bursa">Bursa</SelectItem>
-                    <SelectItem value="konya">Konya</SelectItem>
-                    <SelectItem value="adana">Adana</SelectItem>
-                    <SelectItem value="kocaeli">Kocaeli</SelectItem>
+                    {CITIES.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

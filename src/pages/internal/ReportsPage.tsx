@@ -25,36 +25,82 @@ import {
 } from "recharts";
 import { useReportsSummary } from "@/hooks/useApi";
 
-const downloadCsv = (data: NonNullable<ReturnType<typeof useReportsSummary>["data"]>) => {
-  const rows: string[][] = [];
+const printReport = (data: NonNullable<ReturnType<typeof useReportsSummary>["data"]>) => {
+  const date = new Date().toLocaleDateString("tr-TR");
 
-  rows.push(["ÖZET İSTATİSTİKLER"]);
-  rows.push(["Toplam İlan", String(data.stats.total_listings)]);
-  rows.push(["Ortalama m² Fiyatı (₺)", String(data.stats.avg_price_per_sqm)]);
-  rows.push(["Aktif Şehir Sayısı", String(data.stats.city_count)]);
-  rows.push([]);
+  const districtRows = data.city_breakdown.map(
+    (c) =>
+      `<tr><td>${c.city}</td><td>${c.count.toLocaleString("tr-TR")}</td><td>₺${c.avg_price.toLocaleString("tr-TR")}</td></tr>`
+  ).join("");
 
-  rows.push(["ŞEHİR BAZLI DAĞILIM"]);
-  rows.push(["Şehir", "İlan Sayısı", "Ortalama Fiyat (₺)"]);
-  data.city_breakdown.forEach(c => {
-    rows.push([c.city, String(c.count), String(c.avg_price)]);
-  });
-  rows.push([]);
+  const trendRows = data.monthly_trend.map(
+    (m) => `<tr><td>${m.month}</td><td>${m.count.toLocaleString("tr-TR")}</td></tr>`
+  ).join("");
 
-  rows.push(["AYLIK TREND"]);
-  rows.push(["Ay", "Yeni İlan"]);
-  data.monthly_trend.forEach(m => {
-    rows.push([m.month, String(m.count)]);
-  });
+  const html = `<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Emlak AI — Piyasa Raporu ${date}</title>
+  <style>
+    body { font-family: Arial, sans-serif; color: #111; padding: 32px; }
+    h1 { font-size: 22px; margin-bottom: 4px; }
+    .subtitle { color: #666; font-size: 13px; margin-bottom: 24px; }
+    .stats { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
+    .stat-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px 20px; min-width: 140px; }
+    .stat-label { font-size: 12px; color: #666; }
+    .stat-value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+    h2 { font-size: 15px; margin: 24px 0 8px; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; background: #f9fafb; padding: 8px 12px; font-weight: 600; border-bottom: 1px solid #e5e7eb; }
+    td { padding: 7px 12px; border-bottom: 1px solid #f3f4f6; }
+    @media print { body { padding: 16px; } }
+  </style>
+</head>
+<body>
+  <h1>Emlak AI — Piyasa Raporu</h1>
+  <div class="subtitle">Oluşturulma tarihi: ${date}</div>
 
-  const csv = rows.map(r => r.map(v => `"${v}"`).join(",")).join("\n");
-  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `rapor_${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">Ortalama m² Fiyatı</div>
+      <div class="stat-value">₺${data.stats.avg_price_per_sqm.toLocaleString("tr-TR")}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Toplam İlan</div>
+      <div class="stat-value">${data.stats.total_listings.toLocaleString("tr-TR")}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Aktif İlçe</div>
+      <div class="stat-value">${data.stats.city_count}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Aylık Yeni İlan</div>
+      <div class="stat-value">${(data.monthly_trend[data.monthly_trend.length - 1]?.count ?? 0).toLocaleString("tr-TR")}</div>
+    </div>
+  </div>
+
+  <h2>İlçelere Göre İlanlar</h2>
+  <table>
+    <thead><tr><th>İlçe</th><th>İlan Sayısı</th><th>Ort. Fiyat</th></tr></thead>
+    <tbody>${districtRows}</tbody>
+  </table>
+
+  <h2>Aylık Yeni İlan Sayısı</h2>
+  <table>
+    <thead><tr><th>Ay</th><th>Yeni İlan</th></tr></thead>
+    <tbody>${trendRows}</tbody>
+  </table>
+</body>
+</html>`;
+
+  const win = window.open("", "_blank");
+  if (win) {
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 400);
+  }
 };
 
 const ReportsPage = () => {
@@ -89,7 +135,7 @@ const ReportsPage = () => {
       icon: Home,
     },
     {
-      title: "Aktif Şehir",
+      title: "Aktif İlçe",
       value: data.stats.city_count.toString(),
       icon: MapPin,
     },
@@ -112,7 +158,7 @@ const ReportsPage = () => {
           <h1 className="text-2xl font-semibold text-foreground">Raporlar</h1>
           <p className="text-muted-foreground">Piyasa analizi ve istatistikler</p>
         </div>
-        <Button variant="outline" className="gap-2" onClick={() => data && downloadCsv(data)}>
+        <Button variant="outline" className="gap-2" onClick={() => data && printReport(data)}>
           <Download className="w-4 h-4" />
           Rapor İndir
         </Button>
@@ -195,7 +241,7 @@ const ReportsPage = () => {
         >
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Şehirlere Göre İlanlar</CardTitle>
+              <CardTitle className="text-base">İlçelere Göre İlanlar</CardTitle>
             </CardHeader>
             <CardContent>
               {data.city_breakdown.length === 0 ? (
@@ -248,7 +294,7 @@ const ReportsPage = () => {
       >
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Şehirlere Göre Ortalama Fiyat (₺)</CardTitle>
+            <CardTitle className="text-base">İlçelere Göre Ortalama Fiyat (₺)</CardTitle>
           </CardHeader>
           <CardContent>
             {data.city_breakdown.length === 0 ? (

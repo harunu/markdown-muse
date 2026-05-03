@@ -18,6 +18,13 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import {
   Upload,
   FileText,
   Download,
@@ -25,7 +32,6 @@ import {
   X,
   Check,
   AlertCircle,
-  AlertTriangle,
   ChevronDown,
   Loader2,
   ArrowRight,
@@ -34,8 +40,92 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useImport } from "@/hooks/useImport";
 import { ImportJobDetail, ImportError } from "@/types/import";
+import { CITIES } from "@/lib/cityDistricts";
 
 type UploadState = "idle" | "preview" | "importing" | "complete";
+
+const FormatGuideModal = ({ open, onClose }: { open: boolean; onClose: () => void }) => (
+  <Dialog open={open} onOpenChange={onClose}>
+    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle>CSV Format Rehberi</DialogTitle>
+      </DialogHeader>
+
+      <div className="space-y-5 text-sm">
+        <div>
+          <p className="font-semibold mb-2">Zorunlu Alanlar</p>
+          <div className="bg-muted rounded-lg p-3 font-mono text-xs">
+            title, listing_type, property_type, city, district, price
+          </div>
+        </div>
+
+        <div>
+          <p className="font-semibold mb-2">Opsiyonel Alanlar</p>
+          <div className="bg-muted rounded-lg p-3 font-mono text-xs">
+            neighborhood, area, room_count, building_age, floor, total_floors,
+            heating, description, features, latitude, longitude
+          </div>
+        </div>
+
+        <div>
+          <p className="font-semibold mb-2">Geçerli <code>listing_type</code> Değerleri</p>
+          <div className="flex flex-wrap gap-2">
+            {["sale", "rent"].map((v) => <Badge key={v} variant="secondary">{v}</Badge>)}
+          </div>
+        </div>
+
+        <div>
+          <p className="font-semibold mb-2">Geçerli <code>property_type</code> Değerleri</p>
+          <div className="flex flex-wrap gap-2">
+            {["apartment", "villa", "land", "commercial", "office", "other"].map((v) => (
+              <Badge key={v} variant="secondary">{v}</Badge>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="font-semibold mb-2">Geçerli <code>heating</code> Değerleri</p>
+          <div className="flex flex-wrap gap-2">
+            {["central", "individual", "underfloor", "stove", "ac", "none"].map((v) => (
+              <Badge key={v} variant="secondary">{v}</Badge>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="font-semibold mb-2">Şehir / İlçe Kuralları</p>
+          <p className="text-muted-foreground mb-2">
+            İlçe, seçilen şehre ait olmalıdır. Geçersiz kombinasyonlar reddedilir.
+          </p>
+          <div className="space-y-1 max-h-40 overflow-y-auto border rounded-lg p-3">
+            {CITIES.map((c) => (
+              <div key={c.value} className="flex gap-2 text-xs">
+                <span className="font-medium w-20 shrink-0">{c.label}:</span>
+                <span className="text-muted-foreground">{c.districts.join(", ")}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="font-semibold mb-2">Örnek Satır</p>
+          <div className="bg-muted rounded-lg p-3 font-mono text-xs break-all">
+            title,listing_type,property_type,city,district,price,area,room_count,building_age,heating<br/>
+            "Bodrum Gümüşlük Deniz Manzaralı Villa",sale,villa,Muğla,Bodrum,8500000,220,4+1,5,central
+          </div>
+        </div>
+
+        <div>
+          <p className="font-semibold mb-2">Özellikler (<code>features</code>) Formatı</p>
+          <p className="text-muted-foreground text-xs">
+            Birden fazla özellik için <code>|</code> ayracını kullanın.<br/>
+            Örnek: <code>"Asansör|Otopark|Havuz"</code>
+          </p>
+        </div>
+      </div>
+    </DialogContent>
+  </Dialog>
+);
 
 const ImportPage = () => {
   const [state, setState] = useState<UploadState>("idle");
@@ -52,6 +142,7 @@ const ImportPage = () => {
   const [skipErrors, setSkipErrors] = useState(true);
   const [pollInterval, setPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [formatGuideOpen, setFormatGuideOpen] = useState(false);
 
   const { uploadCSV, getImportStatus, confirmImport, downloadTemplate } = useImport();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -270,7 +361,7 @@ const ImportPage = () => {
                     <Download className="w-4 h-4" />
                     Şablon İndir
                   </Button>
-                  <Button variant="outline" className="gap-2">
+                  <Button variant="outline" className="gap-2" onClick={() => setFormatGuideOpen(true)}>
                     <BookOpen className="w-4 h-4" />
                     Format Rehberi
                   </Button>
@@ -544,6 +635,8 @@ const ImportPage = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <FormatGuideModal open={formatGuideOpen} onClose={() => setFormatGuideOpen(false)} />
     </div>
   );
 };

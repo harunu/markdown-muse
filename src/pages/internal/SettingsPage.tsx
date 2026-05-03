@@ -16,6 +16,7 @@ import { User, Lock, Settings2, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { CITIES } from "@/lib/cityDistricts";
 
 const SettingsPage = () => {
   const { user } = useAuth();
@@ -30,7 +31,7 @@ const SettingsPage = () => {
     confirm: "",
   });
   const [preferences, setPreferences] = useState({
-    defaultCity: "istanbul",
+    defaultCity: "mugla",
     resultsPerPage: "25",
     aiAutoAnalysis: true,
     emailNotifications: true,
@@ -192,9 +193,9 @@ const SettingsPage = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="istanbul">İstanbul</SelectItem>
-                  <SelectItem value="ankara">Ankara</SelectItem>
-                  <SelectItem value="izmir">İzmir</SelectItem>
+                  {CITIES.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
