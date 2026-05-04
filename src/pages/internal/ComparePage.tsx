@@ -87,12 +87,17 @@ const FeatureRow = ({
   </tr>
 );
 
-// Component to fetch a single property
+// Fetch up to 4 properties — each slot always calls the hook (Rules of Hooks)
 const useMultipleProperties = (ids: number[]) => {
-  const results = ids.map(id => useProperty(id));
-  const isLoading = results.some(r => r.isLoading);
-  const properties = results.map(r => r.data).filter((p): p is Property => p !== undefined);
-  return { properties, isLoading };
+  const r0 = useProperty(ids[0] ?? 0);
+  const r1 = useProperty(ids[1] ?? 0);
+  const r2 = useProperty(ids[2] ?? 0);
+  const r3 = useProperty(ids[3] ?? 0);
+  const all = [r0, r1, r2, r3].slice(0, ids.length);
+  return {
+    isLoading: all.some(r => r.isLoading),
+    properties: all.map(r => r.data).filter((p): p is Property => p !== undefined),
+  };
 };
 
 const ComparePage = () => {
@@ -183,7 +188,7 @@ const ComparePage = () => {
         className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
       >
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Karsilastirma</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Karşılaştırma</h1>
           <p className="text-muted-foreground">{properties.length} ilan</p>
         </div>
         <div className="flex gap-2">
@@ -191,18 +196,18 @@ const ComparePage = () => {
             <DialogTrigger asChild>
               <Button variant="outline" className="gap-2" disabled={propertyIds.length >= 4}>
                 <Plus className="w-4 h-4" />
-                Ilan Ekle
+                İlan Ekle
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>Ilan Ekle</DialogTitle>
+                <DialogTitle>İlan Ekle</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
-                    placeholder="Ilan ara..."
+                    placeholder="İlan ara..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-9"
@@ -226,7 +231,7 @@ const ComparePage = () => {
                     </Button>
                   ))}
                   {searchQuery && (!searchResults?.results || searchResults.results.length === 0) && (
-                    <p className="text-center text-muted-foreground py-4">Sonuc bulunamadi</p>
+                    <p className="text-center text-muted-foreground py-4">Sonuç bulunamadı</p>
                   )}
                 </div>
               </div>
@@ -251,11 +256,11 @@ const ComparePage = () => {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <AlertCircle className="w-12 h-12 mb-4 opacity-50" />
-            <p className="text-lg font-medium">Karsilastirmaya ilan eklenmemis</p>
-            <p className="text-sm mb-4">Karsilastirmak icin ilan ekleyin</p>
+            <p className="text-lg font-medium">Karşılaştırmaya ilan eklenmemiş</p>
+            <p className="text-sm mb-4">Karşılaştırmak için ilan ekleyin</p>
             <Button onClick={() => setAddDialogOpen(true)} className="gap-2">
               <Plus className="w-4 h-4" />
-              Ilan Ekle
+              İlan Ekle
             </Button>
           </CardContent>
         </Card>
@@ -310,7 +315,7 @@ const ComparePage = () => {
                   bestIndex={properties.findIndex(c => c.price === lowestPrice)}
                 />
                 <CompareRow
-                  label="m2 Fiyati"
+                  label="m² Fiyatı"
                   values={properties.map(c => {
                     const unitPrice = getUnitPrice(c);
                     return unitPrice ? formatPriceK(unitPrice) : null;
@@ -327,11 +332,11 @@ const ComparePage = () => {
                   suffix=" m2"
                 />
                 <CompareRow
-                  label="Oda"
+                  label="Oda Sayısı"
                   values={properties.map(c => c.room_count)}
                 />
                 <CompareRow
-                  label="Bina Yasi"
+                  label="Bina Yaşı"
                   values={properties.map(c => c.building_age)}
                   bestIndex={properties.findIndex(c => c.building_age === newestAge)}
                   suffix=" yil"
@@ -343,7 +348,7 @@ const ComparePage = () => {
 
                 {/* Features Header */}
                 <tr className="border-b bg-muted/50">
-                  <td colSpan={properties.length + 1} className="py-2 px-4 font-medium text-foreground">Ozellikler</td>
+                  <td colSpan={properties.length + 1} className="py-2 px-4 font-medium text-foreground">Özellikler</td>
                 </tr>
 
                 <FeatureRow
@@ -374,7 +379,7 @@ const ComparePage = () => {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Bot className="w-5 h-5 text-primary" />
-              AI Karsilastirma Ozeti
+              AI Karşılaştırma Ozeti
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -386,7 +391,7 @@ const ComparePage = () => {
               <>
                 {/* Summary */}
                 <div>
-                  <h4 className="font-medium text-foreground mb-1">Genel Degerlendirme:</h4>
+                  <h4 className="font-medium text-foreground mb-1">Genel Değerlendirme:</h4>
                   <p className="text-muted-foreground">{aiComparison.summary}</p>
                 </div>
 
@@ -402,7 +407,7 @@ const ComparePage = () => {
 
                 {aiComparison.best_location && (
                   <div>
-                    <h4 className="font-medium text-foreground mb-1">En Iyi Konum:</h4>
+                    <h4 className="font-medium text-foreground mb-1">En İyi Konum:</h4>
                     <p className="text-muted-foreground">
                       <span className="font-medium">{aiComparison.best_location.title}</span> - {aiComparison.best_location.reason}
                     </p>
@@ -411,7 +416,7 @@ const ComparePage = () => {
 
                 {aiComparison.best_value && (
                   <div>
-                    <h4 className="font-medium text-foreground mb-1">En Iyi Deger:</h4>
+                    <h4 className="font-medium text-foreground mb-1">En İyi Değer:</h4>
                     <p className="text-muted-foreground">
                       <span className="font-medium">{aiComparison.best_value.title}</span> - {aiComparison.best_value.reason}
                     </p>
@@ -429,7 +434,7 @@ const ComparePage = () => {
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <Bot className="w-10 h-10 mx-auto mb-3 opacity-50" />
-                <p>AI karsilastirma analizi yapilamadi.</p>
+                <p>AI karşılaştırma analizi yapılamadı.</p>
               </div>
             )}
           </CardContent>

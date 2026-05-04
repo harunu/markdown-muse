@@ -33,12 +33,15 @@ import {
   Loader2,
   AlertCircle,
   Save,
+  Bookmark,
+  ChevronDown,
+  Clock,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useSearch, useAiChat, useSaveSearch, useAddFavorite, useRemoveFavorite, useFavorites } from "@/hooks/useApi";
+import { useSearch, useAiChat, useSaveSearch, useSavedSearches, useAddFavorite, useRemoveFavorite, useFavorites } from "@/hooks/useApi";
 import { PropertySummary, SearchRequest } from "@/types/api";
 import { useToast } from "@/hooks/use-toast";
-import { CITIES, CITY_DISTRICTS } from "@/lib/cityDistricts";
+import { CITIES, CITY_DISTRICTS, CITY_LABELS } from "@/lib/cityDistricts";
 
 // Map frontend sort labels → backend sort_by values
 const SORT_MAP: Record<string, string> = {
@@ -119,6 +122,8 @@ const SearchPage = () => {
   const searchMutation = useSearch();
   const aiChatMutation = useAiChat();
   const saveSearchMutation = useSaveSearch();
+  const { data: savedSearches } = useSavedSearches();
+  const [savedSearchesOpen, setSavedSearchesOpen] = useState(false);
   const addFavoriteMutation = useAddFavorite();
   const removeFavoriteMutation = useRemoveFavorite();
   const { data: favorites } = useFavorites();
@@ -148,7 +153,8 @@ const SearchPage = () => {
     const request: SearchRequest = {
       query: searchQuery || undefined,
       filters: {
-        city: filters.city,
+        // Send proper label ("Muğla") not value key ("mugla") so backend iexact matches
+        city: filters.city ? (CITY_LABELS[filters.city] ?? filters.city) : undefined,
         district: filters.district,
         price_min: filters.price_min,
         price_max: filters.price_max,
@@ -248,6 +254,22 @@ const SearchPage = () => {
     }
   };
 
+  // Apply a saved search
+  const applySavedSearch = (saved: { query?: string; filters?: Record<string, unknown> }) => {
+    if (saved.query) setSearchQuery(saved.query);
+    if (saved.filters) {
+      setFilters({
+        city: saved.filters.city as string | undefined,
+        district: saved.filters.district as string | undefined,
+        price_min: saved.filters.price_min as number | undefined,
+        price_max: saved.filters.price_max as number | undefined,
+        room_count: saved.filters.room_count as string[] | undefined,
+      });
+    }
+    setSavedSearchesOpen(false);
+    setTimeout(() => handleSearch(1), 50);
+  };
+
   // Search on mount if query param exists
   useEffect(() => {
     const q = searchParams.get("q");
@@ -292,6 +314,39 @@ const SearchPage = () => {
           </Button>
         </div>
       </div>
+
+      {/* Saved Searches Panel */}
+      {savedSearches && savedSearches.length > 0 && (
+        <div className="mb-3">
+          <button
+            onClick={() => setSavedSearchesOpen(p => !p)}
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Bookmark className="w-3.5 h-3.5" />
+            Kayıtlı Aramalar ({savedSearches.length})
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${savedSearchesOpen ? "rotate-180" : ""}`} />
+          </button>
+          {savedSearchesOpen && (
+            <div className="mt-2 bg-card border border-border rounded-lg shadow-sm overflow-hidden">
+              {savedSearches.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => applySavedSearch(s)}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors text-left border-b last:border-0"
+                >
+                  <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{s.name || s.query}</p>
+                    {s.result_count != null && (
+                      <p className="text-xs text-muted-foreground">{s.result_count} sonuç</p>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Three-Panel Layout */}
       <div className="flex-1 flex gap-4 min-h-0">

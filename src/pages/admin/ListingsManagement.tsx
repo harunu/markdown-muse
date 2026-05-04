@@ -179,7 +179,7 @@ const ListingsManagement = () => {
             <ToggleRight className="w-3 h-3" />
             Aktif Yap
           </Button>
-          <Button variant="outline" size="sm" className="gap-1" onClick={() => handleBulkStatus('inactive')} disabled={bulkStatusMutation.isPending}>
+          <Button size="sm" className="gap-1 bg-amber-500 hover:bg-amber-600 text-white" onClick={() => handleBulkStatus('inactive')} disabled={bulkStatusMutation.isPending}>
             <ToggleLeft className="w-3 h-3" />
             Pasif Yap
           </Button>
@@ -301,8 +301,8 @@ const ListingsManagement = () => {
                               </DropdownMenuItem>
                             )}
                             {listing.status !== 'inactive' && (
-                              <DropdownMenuItem onClick={() => handleSingleStatus(listing.id, 'inactive')}>
-                                <ToggleLeft className="w-4 h-4 mr-2 text-muted-foreground" />
+                              <DropdownMenuItem onClick={() => handleSingleStatus(listing.id, 'inactive')} className="text-amber-600 focus:text-amber-600 focus:bg-amber-50">
+                                <ToggleLeft className="w-4 h-4 mr-2 text-amber-500" />
                                 Pasif Yap
                               </DropdownMenuItem>
                             )}
