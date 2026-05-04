@@ -76,6 +76,9 @@ const StatusBadge = ({ status }: { status: string }) => {
 
   return (
     <Badge variant="outline" className={styles[status] || styles.active}>
+      <span className={`w-1.5 h-1.5 rounded-full mr-1.5 inline-block ${
+        status === 'active' ? 'bg-success' : status === 'draft' ? 'bg-warning' : 'bg-destructive'
+      }`} />
       {labels[status] || status}
     </Badge>
   );
@@ -172,7 +175,7 @@ const ListingsPage = () => {
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
       >
-        <h1 className="text-2xl font-semibold text-foreground">Ilan Yonetimi</h1>
+        <h1 className="text-2xl font-semibold text-foreground">İlan Yönetimi</h1>
         <Link to="/import">
           <Button className="gap-2">
             <Download className="w-4 h-4" />
@@ -255,7 +258,7 @@ const ListingsPage = () => {
           className="bg-primary/10 rounded-lg p-3 flex items-center justify-between"
         >
           <span className="text-sm font-medium">
-            Secili: {selectedIds.length} ilan
+            Seçili: {selectedIds.length} ilan
           </span>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" className="gap-2">
@@ -264,7 +267,7 @@ const ListingsPage = () => {
             </Button>
             <Button variant="outline" size="sm" className="gap-2">
               <Download className="w-4 h-4" />
-              Disa Aktar
+              Dışa Aktar
             </Button>
             <Button
               variant="outline"
@@ -292,16 +295,18 @@ const ListingsPage = () => {
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-16 text-destructive">
               <AlertCircle className="w-10 h-10 mb-3" />
-              <p>Ilanlar yüklenirken bir hata olustu.</p>
+              <p>İlanlar yüklenirken bir hata oluştu.</p>
               <Button variant="link" onClick={() => refetch()}>
                 Tekrar dene
               </Button>
             </div>
           ) : listings.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-              <Search className="w-12 h-12 mb-3 opacity-50" />
-              <p className="text-lg font-medium">Ilan bulunamadı</p>
-              <p className="text-sm">Farklı filtrelerle arama yapin</p>
+              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <Search className="w-10 h-10 text-muted-foreground" />
+              </div>
+              <p className="text-lg font-medium mb-1">İlan bulunamadı</p>
+              <p className="text-sm text-muted-foreground">Farklı filtrelerle arama yapın</p>
             </div>
           ) : (
             <Table>
@@ -313,12 +318,12 @@ const ListingsPage = () => {
                       onCheckedChange={toggleAll}
                     />
                   </TableHead>
-                  <TableHead>Ilan</TableHead>
+                  <TableHead>İlan</TableHead>
                   <TableHead>Konum</TableHead>
                   <TableHead>Fiyat</TableHead>
                   <TableHead>Kaynak</TableHead>
                   <TableHead>Durum</TableHead>
-                  <TableHead className="w-16">Islem</TableHead>
+                  <TableHead className="w-16">İşlem</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -334,7 +339,7 @@ const ListingsPage = () => {
                       <div>
                         <p className="font-medium text-foreground">{listing.title}</p>
                         <p className="text-xs text-muted-foreground">
-                          {listing.room_count} - {listing.area || "-"} m2
+                          {listing.room_count} - {listing.area || "-"} m²
                         </p>
                       </div>
                     </TableCell>
@@ -349,7 +354,7 @@ const ListingsPage = () => {
                         <p className="font-medium text-foreground">{formatPrice(listing.price)}</p>
                         {listing.price_per_sqm && (
                           <p className="text-xs text-muted-foreground">
-                            {formatPrice(listing.price_per_sqm)}/m2
+                            {formatPrice(listing.price_per_sqm)}/m²
                           </p>
                         )}
                       </div>
@@ -374,7 +379,7 @@ const ListingsPage = () => {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => navigate(`/listings/${listing.id}`)}>
                             <Eye className="w-4 h-4 mr-2" />
-                            Goruntule
+                            Görüntüle
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => navigate(`/listings/${listing.id}`)}>
                             <Bot className="w-4 h-4 mr-2" />
@@ -453,13 +458,13 @@ const ListingsPage = () => {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ilani silmek istediginize emin misiniz?</AlertDialogTitle>
+            <AlertDialogTitle>İlanı silmek istediğinize emin misiniz?</AlertDialogTitle>
             <AlertDialogDescription>
-              Bu islem geri alinamaz. Ilan kalici olarak silinecektir.
+              Bu işlem geri alınamaz. İlan kalıcı olarak silinecektir.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Iptal</AlertDialogCancel>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

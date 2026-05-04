@@ -138,13 +138,13 @@ const SearchPage = () => {
     try {
       if (isFavorite(ilanId)) {
         await removeFavoriteMutation.mutateAsync(ilanId);
-        toast({ title: "Favorilerden kaldirildi" });
+        toast({ title: "Favorilerden kaldırıldı" });
       } else {
         await addFavoriteMutation.mutateAsync(ilanId);
         toast({ title: "Favorilere eklendi" });
       }
     } catch {
-      toast({ title: "Bir hata olustu", variant: "destructive" });
+      toast({ title: "Bir hata oluştu", variant: "destructive" });
     }
   };
 
@@ -185,8 +185,8 @@ const SearchPage = () => {
       if (newPage) setCurrentPage(newPage);
     } catch {
       toast({
-        title: "Arama hatasi",
-        description: "Arama yapilirken bir hata olustu.",
+        title: "Arama hatası",
+        description: "Arama yapılırken bir hata oluştu.",
         variant: "destructive",
       });
     }
@@ -204,7 +204,7 @@ const SearchPage = () => {
       });
       toast({ title: "Arama kaydedildi" });
     } catch {
-      toast({ title: "Kaydetme hatasi", variant: "destructive" });
+      toast({ title: "Kaydetme hatası", variant: "destructive" });
     }
   };
 
@@ -399,7 +399,7 @@ const SearchPage = () => {
 
               {/* Price Range */}
               <div className="space-y-2">
-                <Label>Fiyat Araligi</Label>
+                <Label>Fiyat Aralığı</Label>
                 <div className="flex gap-2">
                   <Input
                     placeholder="Min"
@@ -457,7 +457,7 @@ const SearchPage = () => {
 
               {/* Area Range */}
               <div className="space-y-2">
-                <Label>m2 Araligi</Label>
+                <Label>m² Aralığı</Label>
                 <div className="flex gap-2">
                   <Input
                     placeholder="Min"
@@ -490,7 +490,7 @@ const SearchPage = () => {
 
               {/* Features */}
               <div className="space-y-3">
-                <Label>Ozellikler</Label>
+                <Label>Özellikler</Label>
                 <div className="space-y-2">
                   {["Asansör", "Otopark", "Havuz", "Güvenlik"].map((feature) => (
                     <div key={feature} className="flex items-center space-x-2">
@@ -583,7 +583,7 @@ const SearchPage = () => {
                 {selectedListings.length} ilan seçildi
               </span>
               <Button size="sm" className="gap-2" onClick={handleCompare}>
-                Karsilastir
+                Karşılaştır
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
@@ -670,7 +670,7 @@ const SearchPage = () => {
                           </div>
 
                           <div className="flex flex-wrap gap-2 mt-2 text-xs text-muted-foreground">
-                            {listing.area && <span>{listing.area} m2</span>}
+                            {listing.area && <span>{listing.area} m²</span>}
                             {listing.room_count && (
                               <>
                                 <span>-</span>
@@ -680,22 +680,22 @@ const SearchPage = () => {
                             {listing.building_age !== null && listing.building_age !== undefined && (
                               <>
                                 <span>-</span>
-                                <span>{listing.building_age} yasinda</span>
+                                <span>{listing.building_age} yaşında</span>
                               </>
                             )}
                             <Badge variant="outline" className="text-xs">
-                              {listing.listing_type === "sale" ? "Satilik" : "Kiralik"}
+                              {listing.listing_type === "sale" ? "Satılık" : "Kiralık"}
                             </Badge>
                           </div>
 
                           <div className="flex items-center justify-between mt-3">
                             <div>
                               <p className="font-semibold text-lg text-foreground">
-                                {formatPrice(listing.price)} TL
+                                ₺{formatPrice(listing.price)}
                               </p>
                               {listing.area && (
                                 <p className="text-xs text-muted-foreground">
-                                  {formatPrice(getUnitPrice(listing.price, listing.area) || 0)} TL/m2
+                                  {formatPrice(getUnitPrice(listing.price, listing.area) || 0)} ₺/m²
                                 </p>
                               )}
                             </div>

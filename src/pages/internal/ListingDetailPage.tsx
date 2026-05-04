@@ -84,7 +84,7 @@ const ListingDetailPage = () => {
   const [noteText, setNoteText] = useState("");
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { role: "assistant", content: "Bu ilan hakkinda soru sorabilirsiniz." }
+    { role: "assistant", content: "Bu ilan hakkında soru sorabilirsiniz." }
   ]);
   const [chatInput, setChatInput] = useState("");
   const [sessionId, setSessionId] = useState<string | undefined>();
@@ -107,13 +107,13 @@ const ListingDetailPage = () => {
     try {
       if (isFavorite) {
         await removeFavoriteMutation.mutateAsync(propertyId);
-        toast({ title: "Favorilerden kaldirildi" });
+        toast({ title: "Favorilerden kaldırıldı" });
       } else {
         await addFavoriteMutation.mutateAsync(propertyId);
         toast({ title: "Favorilere eklendi" });
       }
     } catch {
-      toast({ title: "Bir hata olustu", variant: "destructive" });
+      toast({ title: "Bir hata oluştu", variant: "destructive" });
     }
   };
 
@@ -127,15 +127,15 @@ const ListingDetailPage = () => {
         toast({ title: "Not kaydedildi" });
         setNoteDialogOpen(false);
       } catch {
-        toast({ title: "Bir hata olustu", variant: "destructive" });
+        toast({ title: "Bir hata oluştu", variant: "destructive" });
       }
     } else {
       try {
         await updateNoteMutation.mutateAsync({ propertyId: propertyId, note: noteText });
-        toast({ title: "Not guncellendi" });
+        toast({ title: "Not güncellendi" });
         setNoteDialogOpen(false);
       } catch {
-        toast({ title: "Bir hata olustu", variant: "destructive" });
+        toast({ title: "Bir hata oluştu", variant: "destructive" });
       }
     }
   };
@@ -166,7 +166,7 @@ const ListingDetailPage = () => {
     } catch {
       setChatMessages(prev => [...prev, {
         role: "assistant",
-        content: "Uzgunum, su anda yanit veremiyorum. Lutfen tekrar deneyin."
+        content: "Üzgünüm, şu anda yanıt veremiyorum. Lütfen tekrar deneyin."
       }]);
     }
   };
@@ -174,7 +174,7 @@ const ListingDetailPage = () => {
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
+      <div className="flex items-center justify-center min-h-[50vh] py-20">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -185,9 +185,9 @@ const ListingDetailPage = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-destructive">
         <AlertCircle className="w-12 h-12 mb-4" />
-        <p className="text-lg font-medium">Ilan bulunamadi</p>
+        <p className="text-lg font-medium">İlan bulunamadı</p>
         <Button variant="link" onClick={() => navigate("/listings")}>
-          Ilanlara don
+          İlanlara dön
         </Button>
       </div>
     );
@@ -222,7 +222,7 @@ const ListingDetailPage = () => {
           </Button>
           <Button variant="outline" className="gap-2">
             <Share2 className="w-4 h-4" />
-            Paylas
+            Paylaş
           </Button>
         </div>
       </motion.div>
@@ -282,13 +282,13 @@ const ListingDetailPage = () => {
                     </p>
                   </div>
                   <Badge variant={listing.listing_type === "sale" ? "default" : "secondary"}>
-                    {listing.listing_type === "sale" ? "Satilik" : "Kiralik"}
+                    {listing.listing_type === "sale" ? "Satılık" : "Kiralık"}
                   </Badge>
                 </div>
                 <div className="flex items-baseline justify-between mt-4">
-                  <p className="text-3xl font-bold text-primary">{formatPrice(listing.price)} TL</p>
+                  <p className="text-3xl font-bold text-primary">₺{formatPrice(listing.price)}</p>
                   {listing.area && (
-                    <p className="text-muted-foreground">{formatPrice(birimFiyat)} TL/m2</p>
+                    <p className="text-muted-foreground">{formatPrice(birimFiyat)} ₺/m²</p>
                   )}
                 </div>
               </CardContent>
@@ -303,17 +303,17 @@ const ListingDetailPage = () => {
           >
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Ozellikler</CardTitle>
+                <CardTitle className="text-base">Özellikler</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
                   {[
                     { icon: Bed, label: listing.room_count || "-" },
-                    { icon: Maximize, label: listing.area ? `${listing.area}m2` : "-" },
+                    { icon: Maximize, label: listing.area ? `${listing.area}m²` : "-" },
                     { icon: Building, label: listing.floor ? `${listing.floor}/${listing.total_floors || "?"}` : "-" },
                     { icon: Calendar, label: listing.building_age != null ? `${listing.building_age} yıl` : "-" },
                     { icon: Flame, label: listing.heating || "-" },
-                    { icon: DollarSign, label: listing.listing_type === "sale" ? "Satilik" : "Kiralik" },
+                    { icon: DollarSign, label: listing.listing_type === "sale" ? "Satılık" : "Kiralık" },
                   ].map((item, index) => (
                     <div key={index} className="text-center">
                       <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center mx-auto mb-1">
@@ -336,7 +336,7 @@ const ListingDetailPage = () => {
             >
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Aciklama</CardTitle>
+                  <CardTitle className="text-base">Açıklama</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
@@ -356,7 +356,7 @@ const ListingDetailPage = () => {
             >
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Ek Ozellikler</CardTitle>
+                  <CardTitle className="text-base">Ek Özellikler</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
@@ -406,7 +406,7 @@ const ListingDetailPage = () => {
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Bot className="w-5 h-5 text-primary" />
-                  AI Degerlendirmesi
+                  AI Değerlendirmesi
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-5">
@@ -429,15 +429,15 @@ const ListingDetailPage = () => {
                     {/* Market Comparison */}
                     {aiAnalysis.area_average_price_per_sqm && (
                       <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                        <h4 className="font-medium text-sm">Piyasa Karsilastirmasi</h4>
+                        <h4 className="font-medium text-sm">Piyasa Karşılaştırması</h4>
                         <div className="space-y-1 text-sm">
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">Bu ilan:</span>
-                            <span>{formatPrice(aiAnalysis.price_per_sqm || birimFiyat)} TL/m2</span>
+                            <span>{formatPrice(aiAnalysis.price_per_sqm || birimFiyat)} ₺/m²</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">Bolge ort:</span>
-                            <span>{formatPrice(aiAnalysis.area_average_price_per_sqm)} TL/m2</span>
+                            <span className="text-muted-foreground">Bölge ort:</span>
+                            <span>{formatPrice(aiAnalysis.area_average_price_per_sqm)} ₺/m²</span>
                           </div>
                           {aiAnalysis.price_difference_percent !== undefined && (
                             <div className={`flex justify-between font-medium ${aiAnalysis.price_difference_percent < 0 ? "text-success" : "text-warning"}`}>
@@ -499,7 +499,7 @@ const ListingDetailPage = () => {
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <Bot className="w-10 h-10 mx-auto mb-3 opacity-50" />
-                    <p>AI analizi henuz yapilmamis.</p>
+                    <p>AI analizi henüz yapılmamış.</p>
                   </div>
                 )}
 
@@ -515,7 +515,7 @@ const ListingDetailPage = () => {
                     onClick={() => navigate(`/compare?ids=${propertyId}`)}
                   >
                     <GitCompare className="w-4 h-4" />
-                    Karsilastirmaya Ekle
+                    Karşılaştırmaya Ekle
                   </Button>
                   <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
                     <DialogTrigger asChild>
@@ -598,7 +598,7 @@ const ListingDetailPage = () => {
 
             {/* Quick Actions */}
             <div className="flex flex-wrap gap-2">
-              {["Fiyat uygun mu?", "Yatirim icin nasil?", "Pazarlik payı var mi?"].map((action) => (
+              {["Fiyat uygun mu?", "Yatırım için nasıl?", "Pazarlık payı var mı?"].map((action) => (
                 <Button
                   key={action}
                   variant="outline"

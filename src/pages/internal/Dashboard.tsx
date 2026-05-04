@@ -62,6 +62,7 @@ const Dashboard = () => {
       change: "veritabanında",
       color: "text-primary",
       bgColor: "bg-primary/10",
+      borderColor: "border-l-primary",
     },
     {
       title: "Bugün Arama",
@@ -70,6 +71,7 @@ const Dashboard = () => {
       change: "aramanız",
       color: "text-success",
       bgColor: "bg-success/10",
+      borderColor: "border-l-success",
     },
     {
       title: "Favori Listesi",
@@ -78,6 +80,7 @@ const Dashboard = () => {
       change: "ilan",
       color: "text-warning",
       bgColor: "bg-warning/10",
+      borderColor: "border-l-warning",
     },
     {
       title: "Son Import",
@@ -86,6 +89,7 @@ const Dashboard = () => {
       change: stats?.last_import ? "ilan eklendi" : "henüz yok",
       color: "text-secondary",
       bgColor: "bg-secondary/10",
+      borderColor: "border-l-secondary",
     },
   ];
 
@@ -99,16 +103,11 @@ const Dashboard = () => {
       >
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold text-foreground">
-            Hos geldin, {firstName}!
+            Hoş geldin, {firstName}!
           </h1>
           <p className="text-muted-foreground mt-1">
-            Son güncelleme: {new Date().toLocaleDateString("tr-TR", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit"
-            })}
+            {user?.role && <span className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium mr-2">{user.role}</span>}
+            {new Date().toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })}
           </p>
         </div>
       </motion.div>
@@ -148,7 +147,7 @@ const Dashboard = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
             >
-              <Card className="hover:shadow-card transition-shadow">
+              <Card className={`hover:shadow-card transition-all border-l-4 ${stat.borderColor}`}>
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between">
                     <div>
@@ -175,7 +174,8 @@ const Dashboard = () => {
       >
         <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="text-lg">Hizli Islemler</CardTitle>
+            <CardTitle className="text-lg">Hızlı İşlemler</CardTitle>
+            <p className="text-sm text-muted-foreground">Sık kullandığınız işlemlere hızlı erişin</p>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="flex flex-wrap gap-3">
@@ -217,7 +217,9 @@ const Dashboard = () => {
             ) : !recentSearches || recentSearches.length === 0 ? (
               // Empty state
               <div className="text-center py-8 text-muted-foreground">
-                <Search className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Search className="w-8 h-8 text-muted-foreground" />
+                </div>
                 <p>Henüz arama yapmadınız.</p>
                 <Link to="/search">
                   <Button variant="link" className="mt-2">

@@ -132,8 +132,10 @@ const InternalLayout = () => {
         {!collapsed && (
           <div className="p-4 border-t border-sidebar-border">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-sidebar-accent rounded-full flex items-center justify-center">
-                <User className="w-5 h-5 text-sidebar-foreground/70" />
+              <div className="w-9 h-9 bg-sidebar-primary/20 rounded-full flex items-center justify-center">
+                <span className="text-xs font-semibold text-sidebar-primary-foreground">
+                  {displayName.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase()}
+                </span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-sidebar-foreground truncate">{displayName}</p>
@@ -182,8 +184,10 @@ const InternalLayout = () => {
             </div>
             <div className="p-4 border-t border-sidebar-border">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-sidebar-accent rounded-full flex items-center justify-center">
-                  <User className="w-5 h-5 text-sidebar-foreground/70" />
+                <div className="w-9 h-9 bg-sidebar-primary/20 rounded-full flex items-center justify-center">
+                  <span className="text-xs font-semibold text-sidebar-primary-foreground">
+                    {displayName.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase()}
+                  </span>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-sidebar-foreground">{displayName}</p>
@@ -216,16 +220,18 @@ const InternalLayout = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="relative">
+            <Button variant="ghost" size="icon" className="relative" title="Bildirimler">
               <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full animate-pulse" />
             </Button>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="gap-2">
-                  <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4" />
+                  <div className="w-8 h-8 bg-primary/15 rounded-full flex items-center justify-center">
+                    <span className="text-xs font-semibold text-primary">
+                      {displayName.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase()}
+                    </span>
                   </div>
                   <span className="hidden md:inline">{displayName.split(" ")[0]}</span>
                 </Button>
@@ -248,7 +254,7 @@ const InternalLayout = () => {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-auto">
+        <main className="flex-1 p-4 lg:p-6 overflow-auto bg-background/50">
           <Outlet />
         </main>
       </div>

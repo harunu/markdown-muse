@@ -19,6 +19,7 @@ import {
   GitCompare,
   Loader2,
   AlertCircle,
+  Search,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useFavorites, useRemoveFavorite, useUpdateFavoriteNote } from "@/hooks/useApi";
@@ -81,9 +82,12 @@ const FavoritesPage = () => {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-destructive">
-        <AlertCircle className="w-10 h-10 mb-3" />
-        <p>Favoriler yüklenirken bir hata oluştu.</p>
+      <div className="flex flex-col items-center justify-center py-16 gap-3">
+        <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
+          <AlertCircle className="w-8 h-8 text-destructive" />
+        </div>
+        <p className="font-medium text-foreground">Favoriler yüklenemedi</p>
+        <p className="text-sm text-muted-foreground">Bir hata oluştu, lütfen tekrar deneyin.</p>
       </div>
     );
   }
@@ -100,13 +104,13 @@ const FavoritesPage = () => {
       >
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Favorilerim</h1>
-          <p className="text-muted-foreground">{items.length} ilan</p>
+          <p className="text-muted-foreground">{items.length > 0 ? `${items.length} kayıtlı ilan` : 'Henüz favori yok'}</p>
         </div>
         <div className="flex gap-2">
-          <Link to="/compare">
-            <Button variant="outline" className="gap-2" disabled={selectedIds.length < 2}>
+          <Link to={selectedIds.length >= 2 ? `/compare?ids=${selectedIds.join(',')}` : '#'}>
+            <Button variant={selectedIds.length >= 2 ? "default" : "outline"} className="gap-2" disabled={selectedIds.length < 2}>
               <GitCompare className="w-4 h-4" />
-              Karşılaştır ({selectedIds.length})
+              Karşılaştır {selectedIds.length >= 2 ? `(${selectedIds.length})` : ''}
             </Button>
           </Link>
           <Button variant="outline" className="gap-2" disabled>
@@ -118,11 +122,17 @@ const FavoritesPage = () => {
 
       {/* Empty state */}
       {items.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-          <Star className="w-12 h-12 mb-3 opacity-40" />
-          <p className="text-lg font-medium">Henüz favori eklemediniz.</p>
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-20 h-20 bg-warning/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Star className="w-10 h-10 text-warning" />
+          </div>
+          <h3 className="text-lg font-semibold mb-1">Henüz favori eklemediniz</h3>
+          <p className="text-muted-foreground text-sm mb-4">İlanlara göz atın ve beğendiklerinizi kaydedin</p>
           <Link to="/search">
-            <Button variant="link" className="mt-2">İlanlara göz at</Button>
+            <Button variant="default" className="gap-2">
+              <Search className="w-4 h-4" />
+              İlanlara Göz At
+            </Button>
           </Link>
         </div>
       )}
@@ -145,8 +155,15 @@ const FavoritesPage = () => {
                   <CardContent className="p-0">
                     {/* Image placeholder */}
                     <div className="relative">
-                      <div className="w-full h-40 bg-muted rounded-t-lg flex items-center justify-center">
-                        <MapPin className="w-8 h-8 text-muted-foreground/40" />
+                      <div className="w-full h-44 rounded-t-lg flex items-center justify-center overflow-hidden relative"
+                        style={{ background: `linear-gradient(135deg, hsl(${(item.property.id * 47) % 360}, 40%, 85%) 0%, hsl(${(item.property.id * 47 + 60) % 360}, 35%, 75%) 100%)` }}>
+                        <div className="text-center opacity-60">
+                          <MapPin className="w-8 h-8 mx-auto mb-1" />
+                          <span className="text-xs font-medium">{item.property.district}</span>
+                        </div>
+                        <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm rounded-full px-2 py-0.5 text-xs font-semibold text-foreground">
+                          {item.property.listing_type === 'sale' ? 'Satılık' : 'Kiralık'}
+                        </div>
                       </div>
                       <div className="absolute top-2 left-2">
                         <Checkbox
@@ -178,13 +195,14 @@ const FavoritesPage = () => {
 
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-semibold text-lg">{formatPrice(item.property.price)}</p>
-                          {item.property.area && (
-                            <p className="text-xs text-muted-foreground">{item.property.area} m²</p>
-                          )}
+                          <p className="font-bold text-xl text-foreground">{formatPrice(item.property.price)}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                            {item.property.room_count && <span>{item.property.room_count}</span>}
+                            {item.property.area && <><span>•</span><span>{item.property.area} m²</span></>}
+                          </div>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          Eklendi: {formatDate(item.added_at)}
+                          {formatDate(item.added_at)}
                         </p>
                       </div>
 
