@@ -155,15 +155,8 @@ const FavoritesPage = () => {
                   <CardContent className="p-0">
                     {/* Image placeholder */}
                     <div className="relative">
-                      <div className="w-full h-44 rounded-t-lg flex items-center justify-center overflow-hidden relative"
-                        style={{ background: `linear-gradient(135deg, hsl(${(item.property.id * 47) % 360}, 40%, 85%) 0%, hsl(${(item.property.id * 47 + 60) % 360}, 35%, 75%) 100%)` }}>
-                        <div className="text-center opacity-60">
-                          <MapPin className="w-8 h-8 mx-auto mb-1" />
-                          <span className="text-xs font-medium">{item.property.district}</span>
-                        </div>
-                        <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm rounded-full px-2 py-0.5 text-xs font-semibold text-foreground">
-                          {item.property.listing_type === 'sale' ? 'Satılık' : 'Kiralık'}
-                        </div>
+                      <div className="w-full h-40 bg-muted rounded-t-lg flex items-center justify-center">
+                        <MapPin className="w-8 h-8 text-muted-foreground/40" />
                       </div>
                       <div className="absolute top-2 left-2">
                         <Checkbox
