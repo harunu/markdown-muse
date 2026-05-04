@@ -100,15 +100,13 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
           </h1>
 
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="relative">
+            <Button variant="ghost" size="icon" className="relative" title="Bildirimler">
               <Bell className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-admin-error text-[10px] font-bold rounded-full flex items-center justify-center text-white">
-                3
-              </span>
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-admin-error rounded-full animate-pulse" />
             </Button>
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-admin-blue/20 flex items-center justify-center">
-                <User className="w-4 h-4 text-admin-blue" />
+                <span className="text-xs font-bold text-admin-blue">AD</span>
               </div>
               <span className="text-sm font-medium text-foreground hidden md:block">Admin</span>
             </div>
@@ -116,7 +114,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         </header>
 
         {/* Page Content */}
-        <main className="p-6">
+        <main className="p-6 bg-background/50 min-h-[calc(100vh-4rem)]">
           {children}
         </main>
       </div>

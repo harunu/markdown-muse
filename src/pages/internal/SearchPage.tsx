@@ -598,19 +598,24 @@ const SearchPage = () => {
               </div>
             ) : searchMutation.isError ? (
               // Error state
-              <div className="flex flex-col items-center justify-center py-16 text-destructive">
-                <AlertCircle className="w-10 h-10 mb-3" />
-                <p>Arama yapılırken bir hata oluştu.</p>
-                <Button variant="link" onClick={() => handleSearch(1)}>
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
+                  <AlertCircle className="w-8 h-8 text-destructive" />
+                </div>
+                <p className="font-medium text-foreground">Arama yapılamadı</p>
+                <p className="text-sm text-muted-foreground">Bir hata oluştu, lütfen tekrar deneyin.</p>
+                <Button variant="outline" size="sm" onClick={() => handleSearch(1)}>
                   Tekrar dene
                 </Button>
               </div>
             ) : results.length === 0 ? (
               // Empty state
-              <div data-testid="no-results" className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                <Search className="w-12 h-12 mb-3 opacity-50" />
-                <p className="text-lg font-medium">Sonuç bulunamadı</p>
-                <p className="text-sm">Farklı kriterlerle aramayı deneyin</p>
+              <div data-testid="no-results" className="flex flex-col items-center justify-center py-16 gap-2">
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-2">
+                  <Search className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <p className="text-lg font-semibold text-foreground">Sonuç bulunamadı</p>
+                <p className="text-sm text-muted-foreground">Farklı kriterlerle aramayı deneyin</p>
               </div>
             ) : (
               // Results
@@ -621,8 +626,8 @@ const SearchPage = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                 >
-                  <Card data-testid="listing-card" className={`hover:shadow-card transition-all cursor-pointer ${
-                    selectedListings.includes(listing.id) ? "ring-2 ring-primary" : ""
+                  <Card data-testid="listing-card" className={`hover:shadow-card transition-all cursor-pointer border hover:border-primary/30 ${
+                    selectedListings.includes(listing.id) ? "ring-2 ring-primary border-primary/30" : ""
                   }`}>
                     <CardContent className="p-4">
                       <div className="flex gap-4">
