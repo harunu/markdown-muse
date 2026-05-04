@@ -89,7 +89,7 @@ export const useCreateProperty = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: Record<string, unknown>) => {
-      const response = await apiClient.post('/properties/', data);
+      const response = await apiClient.post('/properties', data);
       return response.data;
     },
     onSuccess: () => {
@@ -155,7 +155,7 @@ export const useAddFavorite = () => {
 
   return useMutation({
     mutationFn: async (propertyId: number) => {
-      const response = await apiClient.post('/favorites/', { property_id: propertyId });
+      const response = await apiClient.post('/favorites', { property_id: propertyId });
       return response.data;
     },
     onSuccess: () => {
@@ -300,7 +300,7 @@ export const useBulkStatusUpdate = () => {
 
   return useMutation({
     mutationFn: async ({ ids, status }: { ids: number[]; status: 'active' | 'inactive' | 'draft' }) => {
-      const response = await apiClient.post('/properties/bulk-action/', {
+      const response = await apiClient.post('/properties/bulk-action', {
         action: 'update_status',
         property_ids: ids,
         new_status: status,
