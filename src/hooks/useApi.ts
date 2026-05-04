@@ -85,6 +85,19 @@ export const useDeleteProperty = () => {
   });
 };
 
+export const useCreateProperty = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      const response = await apiClient.post('/properties/', data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.properties.all });
+    },
+  });
+};
+
 // Search hooks
 export const useSearch = () => {
   return useMutation({
@@ -288,9 +301,9 @@ export const useBulkStatusUpdate = () => {
   return useMutation({
     mutationFn: async ({ ids, status }: { ids: number[]; status: 'active' | 'inactive' | 'draft' }) => {
       const response = await apiClient.post('/properties/bulk-action/', {
-        operation: 'update_status',
-        ids,
-        status,
+        action: 'update_status',
+        property_ids: ids,
+        new_status: status,
       });
       return response.data;
     },

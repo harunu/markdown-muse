@@ -28,6 +28,7 @@ import AdminHistory from "./pages/admin/AdminHistory";
 import AdminQuality from "./pages/admin/AdminQuality";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminSettings from "./pages/admin/AdminSettings";
+import NewListingPage from "./pages/admin/NewListingPage";
 
 // Loading spinner component
 const FullPageSpinner = () => (
@@ -114,6 +115,14 @@ const AppRoutes = () => (
       element={
         <AdminRoute>
           <AdminListings />
+        </AdminRoute>
+      }
+    />
+    <Route
+      path="/admin/listings/new"
+      element={
+        <AdminRoute>
+          <NewListingPage />
         </AdminRoute>
       }
     />

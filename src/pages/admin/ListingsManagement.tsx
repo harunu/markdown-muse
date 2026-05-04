@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Search, Plus, Upload, MoreHorizontal,
-  Eye, Trash2, Check, Loader2, AlertCircle, ChevronLeft, ChevronRight,
-  ToggleLeft, ToggleRight,
+  Eye, Trash2, Loader2, AlertCircle, ChevronLeft, ChevronRight,
+  CheckCircle, PauseCircle, FileText,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -63,21 +63,27 @@ const ListingsManagement = () => {
   const deleteMutation = useDeleteProperty();
   const bulkStatusMutation = useBulkStatusUpdate();
 
-  const handleBulkStatus = async (status: 'active' | 'inactive') => {
+  const STATUS_TOAST: Record<string, string> = {
+    active: "aktif",
+    inactive: "pasif",
+    draft: "taslak",
+  };
+
+  const handleBulkStatus = async (status: 'active' | 'inactive' | 'draft') => {
     if (selectedIds.length === 0) return;
     try {
       await bulkStatusMutation.mutateAsync({ ids: selectedIds, status });
-      toast({ title: `${selectedIds.length} ilan ${status === 'active' ? 'aktif' : 'pasif'} yapıldı.` });
+      toast({ title: `${selectedIds.length} ilan ${STATUS_TOAST[status]} yapıldı.` });
       setSelectedIds([]);
     } catch {
       toast({ title: "İşlem başarısız.", variant: "destructive" });
     }
   };
 
-  const handleSingleStatus = async (id: number, status: 'active' | 'inactive') => {
+  const handleSingleStatus = async (id: number, status: 'active' | 'inactive' | 'draft') => {
     try {
       await bulkStatusMutation.mutateAsync({ ids: [id], status });
-      toast({ title: `İlan ${status === 'active' ? 'aktif' : 'pasif'} yapıldı.` });
+      toast({ title: `İlan ${STATUS_TOAST[status]} yapıldı.` });
     } catch {
       toast({ title: "İşlem başarısız.", variant: "destructive" });
     }
@@ -134,7 +140,7 @@ const ListingsManagement = () => {
               CSV Import
             </Button>
           </Link>
-          <Button variant="default" className="gap-2" disabled>
+          <Button variant="default" className="gap-2" onClick={() => navigate('/admin/listings/new')}>
             <Plus className="w-4 h-4" />
             Yeni İlan
           </Button>
@@ -175,13 +181,17 @@ const ListingsManagement = () => {
           <span className="text-sm text-admin-blue font-medium">
             {selectedIds.length} ilan seçildi
           </span>
-          <Button variant="default" size="sm" className="gap-1" onClick={() => handleBulkStatus('active')} disabled={bulkStatusMutation.isPending}>
-            <ToggleRight className="w-3 h-3" />
+          <Button size="sm" className="gap-1 bg-green-600 hover:bg-green-700 text-white" onClick={() => handleBulkStatus('active')} disabled={bulkStatusMutation.isPending}>
+            <CheckCircle className="w-3 h-3" />
             Aktif Yap
           </Button>
           <Button size="sm" className="gap-1 bg-amber-500 hover:bg-amber-600 text-white" onClick={() => handleBulkStatus('inactive')} disabled={bulkStatusMutation.isPending}>
-            <ToggleLeft className="w-3 h-3" />
+            <PauseCircle className="w-3 h-3" />
             Pasif Yap
+          </Button>
+          <Button size="sm" className="gap-1 bg-slate-500 hover:bg-slate-600 text-white" onClick={() => handleBulkStatus('draft')} disabled={bulkStatusMutation.isPending}>
+            <FileText className="w-3 h-3" />
+            Taslağa Al
           </Button>
           <Button
             variant="destructive"
@@ -296,14 +306,26 @@ const ListingsManagement = () => {
                             </DropdownMenuItem>
                             {listing.status !== 'active' && (
                               <DropdownMenuItem onClick={() => handleSingleStatus(listing.id, 'active')}>
-                                <ToggleRight className="w-4 h-4 mr-2 text-admin-success" />
+                                <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
                                 Aktif Yap
                               </DropdownMenuItem>
                             )}
                             {listing.status !== 'inactive' && (
-                              <DropdownMenuItem onClick={() => handleSingleStatus(listing.id, 'inactive')} className="text-amber-600 focus:text-amber-600 focus:bg-amber-50">
-                                <ToggleLeft className="w-4 h-4 mr-2 text-amber-500" />
+                              <DropdownMenuItem
+                                className="text-amber-600 focus:text-amber-600"
+                                onClick={() => handleSingleStatus(listing.id, 'inactive')}
+                              >
+                                <PauseCircle className="w-4 h-4 mr-2" />
                                 Pasif Yap
+                              </DropdownMenuItem>
+                            )}
+                            {listing.status !== 'draft' && (
+                              <DropdownMenuItem
+                                className="text-slate-500 focus:text-slate-600"
+                                onClick={() => handleSingleStatus(listing.id, 'draft')}
+                              >
+                                <FileText className="w-4 h-4 mr-2" />
+                                Taslağa Al
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuItem
