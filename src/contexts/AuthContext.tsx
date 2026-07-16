@@ -29,7 +29,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const checkAuth = async () => {
       // Playwright E2E test bypass — window.__PLAYWRIGHT_AUTH_USER set via addInitScript
-      const e2eUser = (window as any).__PLAYWRIGHT_AUTH_USER;
+      const e2eUser = (window as unknown as { __PLAYWRIGHT_AUTH_USER?: User }).__PLAYWRIGHT_AUTH_USER;
       if (e2eUser) {
         setUser(e2eUser);
         setIsLoading(false);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,10 +16,14 @@ import { User, Lock, Settings2, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUpdateProfile, useUpdatePreferences, useChangePassword } from "@/hooks/useApi";
 import { CITIES } from "@/lib/cityDistricts";
 
 const SettingsPage = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
+  const updateProfile = useUpdateProfile();
+  const updatePreferences = useUpdatePreferences();
+  const changePassword = useChangePassword();
 
   const [profile, setProfile] = useState({
     name: user?.full_name || "",
@@ -31,22 +35,60 @@ const SettingsPage = () => {
     confirm: "",
   });
   const [preferences, setPreferences] = useState({
-    defaultCity: "mugla",
-    resultsPerPage: "25",
-    aiAutoAnalysis: true,
-    emailNotifications: true,
+    defaultCity: user?.preferences?.default_city || "mugla",
+    resultsPerPage: String(user?.preferences?.results_per_page ?? 25),
+    aiAutoAnalysis: user?.preferences?.ai_auto ?? true,
+    emailNotifications: user?.preferences?.email_notifications ?? true,
   });
-  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSaveProfile = () => {
-    setIsSaving(true);
-    setTimeout(() => {
+  // Sync form state once the authenticated user (and saved preferences) load
+  useEffect(() => {
+    if (user) {
+      setProfile({ name: user.full_name || "", email: user.email || "" });
+      setPreferences({
+        defaultCity: user.preferences?.default_city || "mugla",
+        resultsPerPage: String(user.preferences?.results_per_page ?? 25),
+        aiAutoAnalysis: user.preferences?.ai_auto ?? true,
+        emailNotifications: user.preferences?.email_notifications ?? true,
+      });
+    }
+  }, [user]);
+
+  const handleSaveProfile = async () => {
+    if (!profile.name.trim()) {
+      toast.error("Ad Soyad boş olamaz");
+      return;
+    }
+    try {
+      await updateProfile.mutateAsync({ full_name: profile.name.trim() });
+      updateUser({ full_name: profile.name.trim() });
       toast.success("Profil güncellendi");
-      setIsSaving(false);
-    }, 500);
+    } catch {
+      toast.error("Profil güncellenirken bir hata oluştu");
+    }
   };
 
-  const handleChangePassword = () => {
+  const handleSavePreferences = async () => {
+    try {
+      const payload = {
+        default_city: preferences.defaultCity,
+        results_per_page: Number(preferences.resultsPerPage),
+        ai_auto: preferences.aiAutoAnalysis,
+        email_notifications: preferences.emailNotifications,
+      };
+      await updatePreferences.mutateAsync(payload);
+      updateUser({ preferences: payload });
+      toast.success("Tercihler kaydedildi");
+    } catch {
+      toast.error("Tercihler kaydedilirken bir hata oluştu");
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!passwords.current) {
+      toast.error("Mevcut şifrenizi girin");
+      return;
+    }
     if (passwords.new !== passwords.confirm) {
       toast.error("Şifreler eşleşmiyor");
       return;
@@ -55,12 +97,17 @@ const SettingsPage = () => {
       toast.error("Şifre en az 8 karakter olmalı");
       return;
     }
-    setIsSaving(true);
-    setTimeout(() => {
+    try {
+      await changePassword.mutateAsync({
+        current_password: passwords.current,
+        new_password: passwords.new,
+        new_password_confirm: passwords.confirm,
+      });
       toast.success("Şifre güncellendi");
       setPasswords({ current: "", new: "", confirm: "" });
-      setIsSaving(false);
-    }, 500);
+    } catch {
+      toast.error("Şifre güncellenemedi. Mevcut şifrenizi kontrol edin.");
+    }
   };
 
   return (
@@ -102,15 +149,17 @@ const SettingsPage = () => {
                 id="email"
                 type="email"
                 value={profile.email}
-                onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
+                disabled
+                className="bg-muted"
               />
+              <p className="text-xs text-muted-foreground">E-posta adresi değiştirilemez.</p>
             </div>
             <div className="space-y-2">
               <Label>Rol</Label>
               <Input value="Emlak Danışmanı" disabled className="bg-muted" />
             </div>
-            <Button onClick={handleSaveProfile} disabled={isSaving}>
-              {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            <Button onClick={handleSaveProfile} disabled={updateProfile.isPending}>
+              {updateProfile.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Kaydet
             </Button>
           </CardContent>
@@ -158,8 +207,8 @@ const SettingsPage = () => {
                 onChange={(e) => setPasswords(prev => ({ ...prev, confirm: e.target.value }))}
               />
             </div>
-            <Button onClick={handleChangePassword} disabled={isSaving}>
-              {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            <Button onClick={handleChangePassword} disabled={changePassword.isPending}>
+              {changePassword.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Şifreyi Güncelle
             </Button>
           </CardContent>
@@ -248,6 +297,11 @@ const SettingsPage = () => {
                 onCheckedChange={(checked) => setPreferences(prev => ({ ...prev, emailNotifications: checked }))}
               />
             </div>
+
+            <Button onClick={handleSavePreferences} disabled={updatePreferences.isPending}>
+              {updatePreferences.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Tercihleri Kaydet
+            </Button>
           </CardContent>
         </Card>
       </motion.div>
