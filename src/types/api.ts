@@ -4,13 +4,19 @@
  * Updated to match English backend API field names
  */
 
+// API Error object (nested error envelope)
+export interface ApiError {
+  code: string;
+  message: string;
+  details: Record<string, string[]> | null;
+}
+
 // API Response Envelope
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
   message?: string;
-  error_code?: string;
-  details?: Record<string, string[]>;
+  error?: ApiError;
 }
 
 // Paginated Response

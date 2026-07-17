@@ -139,8 +139,8 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // Extract error message from backend response (now in English)
-    const errorMessage = error.response?.data?.message || 'An unexpected error occurred.';
+    // Extract error message from backend response (nested error envelope)
+    const errorMessage = error.response?.data?.error?.message || 'An unexpected error occurred.';
 
     // Attach error message to error object for easy access
     (error as AxiosError & { apiMessage?: string }).apiMessage = errorMessage;

@@ -42,7 +42,7 @@ const Login = () => {
       }
     } catch (err) {
       const axiosError = err as AxiosError<ApiResponse<unknown>>;
-      const errorMessage = axiosError.response?.data?.message || "Giriş başarısız. Lütfen tekrar deneyin.";
+      const errorMessage = axiosError.response?.data?.error?.message || "Giriş başarısız. Lütfen tekrar deneyin.";
       setError(errorMessage);
     } finally {
       setIsLoading(false);
