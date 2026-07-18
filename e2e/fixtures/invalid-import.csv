@@ -1,0 +1,6 @@
+title,listing_type,property_type,city,district,price,area,room_count
+E2E Good Row,sale,apartment,mugla,Bodrum,5000000,80,1+1
+E2E Bad Price Row,sale,apartment,istanbul,Kadıköy,NOT_A_NUMBER,80,2+1
+E2E Missing City Row,sale,apartment,,Bodrum,3000000,60,2+1
+E2E District Mismatch Row,sale,apartment,antalya,Bodrum,4000000,70,2+1
+E2E Bad Type Row,invalid_type,apartment,mugla,Milas,2500000,65,1+1

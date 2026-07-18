@@ -75,7 +75,7 @@ const StatusBadge = ({ status }: { status: string }) => {
   };
 
   return (
-    <Badge variant="outline" className={styles[status] || styles.active}>
+    <Badge variant="outline" data-testid="listing-status-badge" className={styles[status] || styles.active}>
       <span className={`w-1.5 h-1.5 rounded-full mr-1.5 inline-block ${
         status === 'active' ? 'bg-success' : status === 'draft' ? 'bg-warning' : 'bg-destructive'
       }`} />
@@ -328,7 +328,7 @@ const ListingsPage = () => {
               </TableHeader>
               <TableBody>
                 {listings.map((listing: PropertySummary) => (
-                  <TableRow key={listing.id} className="group">
+                  <TableRow key={listing.id} className="group" data-testid="listing-row">
                     <TableCell>
                       <Checkbox
                         checked={selectedIds.includes(listing.id)}

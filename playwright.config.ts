@@ -5,7 +5,10 @@ export default defineConfig({
   fullyParallel: false,
   retries: 1,
   workers: 1,
-  reporter: [['html', { outputFolder: 'playwright-report' }]],
+  reporter: [
+    ['list'],
+    ['html', { outputFolder: 'playwright-report', open: 'never' }],
+  ],
   use: {
     baseURL: process.env.BASE_URL ?? 'http://localhost:5173',
     video: 'retain-on-failure',

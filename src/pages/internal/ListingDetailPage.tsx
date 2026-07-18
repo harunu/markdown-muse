@@ -505,7 +505,7 @@ const ListingDetailPage = () => {
 
                 {/* Actions */}
                 <div className="space-y-2 pt-2">
-                  <Button data-testid="ask-ai-button" className="w-full gap-2" onClick={() => setChatOpen(true)}>
+                  <Button data-testid="advisor-ask-button" className="w-full gap-2" onClick={() => setChatOpen(true)}>
                     <MessageCircle className="w-4 h-4" />
                     AI'ya Soru Sor
                   </Button>

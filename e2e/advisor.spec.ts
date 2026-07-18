@@ -1,56 +1,52 @@
 import { test, expect } from '@playwright/test';
+import { loginAs } from './helpers/auth';
 
-async function injectAuthToken(page: import('@playwright/test').Page) {
-  await page.addInitScript(`
-    window.__PLAYWRIGHT_AUTH_USER = {
-      id: 1,
-      full_name: 'Admin',
-      email: 'admin@example.com',
-      role: 'super_admin',
-      preferences: {}
-    };
-  `);
+/**
+ * Opens the first listing's detail page via the listings table.
+ */
+async function openFirstListing(page: import('@playwright/test').Page) {
+  await page.goto('/listings');
+  const row = page.locator('[data-testid="listing-row"]').first();
+  await expect(row).toBeVisible({ timeout: 15000 });
+  await row.hover();
+  await row.locator('button').last().click();
+  await page.getByRole('menuitem', { name: /görüntüle/i }).click();
+  await page.waitForURL(/\/listings\/\d+/, { timeout: 10000 });
+  await page.waitForLoadState('networkidle');
 }
 
 test.describe('AI Advisor on Listing Detail', () => {
   test.beforeEach(async ({ page }) => {
-    await injectAuthToken(page);
-    await page.goto('/listings/1');
-    await page.waitForLoadState('networkidle');
+    await loginAs(page, 'professional');
+    await openFirstListing(page);
   });
 
-  test('listing detail page shows AI analysis panel', async ({ page }) => {
-    const aiPanel = page.locator('[data-testid="ai-analysis-panel"]');
-    const isVisible = await aiPanel.isVisible();
-    expect(typeof isVisible).toBe('boolean');
+  test('AI analysis panel is present on the detail page', async ({ page }) => {
+    await expect(page.locator('[data-testid="ai-analysis-panel"]')).toBeVisible({ timeout: 15000 });
   });
 
-  test('ask AI button is present on listing detail', async ({ page }) => {
-    const askBtn = page.locator('[data-testid="ask-ai-button"]');
-    const isVisible = await askBtn.isVisible();
-    expect(typeof isVisible).toBe('boolean');
+  test('ask AI button opens the advisor input', async ({ page }) => {
+    const askBtn = page.locator('[data-testid="advisor-ask-button"]');
+    await expect(askBtn).toBeVisible({ timeout: 15000 });
+    await askBtn.click();
+    await expect(page.locator('[data-testid="advisor-input"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-testid="advisor-submit"]')).toBeVisible();
   });
 
-  test('clicking ask AI button opens advisor input', async ({ page }) => {
-    const askBtn = page.locator('[data-testid="ask-ai-button"]');
-    if (await askBtn.isVisible()) {
-      await askBtn.click();
-      await expect(page.locator('[data-testid="advisor-input"]')).toBeVisible({ timeout: 5000 });
-    }
+  test('advisor input accepts a question', async ({ page }) => {
+    await page.locator('[data-testid="advisor-ask-button"]').click();
+    const input = page.locator('[data-testid="advisor-input"]');
+    await input.fill('Bu fiyat piyasaya göre makul mü?');
+    expect(await input.inputValue()).toContain('makul');
+    // NOTE: actual answer assertion requires a configured LLM backend;
+    // covered by backend tests with mocks (apps/ai/tests/test_advisor.py).
   });
 
-  test('advisor submit button is present when input is open', async ({ page }) => {
-    const askBtn = page.locator('[data-testid="ask-ai-button"]');
-    if (await askBtn.isVisible()) {
-      await askBtn.click();
-      await page.waitForTimeout(500);
-      await expect(page.locator('[data-testid="advisor-submit"]')).toBeVisible({ timeout: 5000 });
-    }
-  });
-
-  test('price score element is present when AI data is available', async ({ page }) => {
-    const priceScore = page.locator('[data-testid="price-score"]');
-    const isVisible = await priceScore.isVisible();
-    expect(typeof isVisible).toBe('boolean');
+  test('detail page shows no raw price label keys', async ({ page }) => {
+    const body = await page.locator('body').innerText();
+    // Raw stable keys like "very_high"/"good" must not render as-is
+    expect(body).not.toMatch(/\bvery_high\b/);
+    expect(body).not.toContain('[object Object]');
+    expect(body).not.toContain('undefined');
   });
 });

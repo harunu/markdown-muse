@@ -158,7 +158,7 @@ const SettingsPage = () => {
               <Label>Rol</Label>
               <Input value="Emlak Danışmanı" disabled className="bg-muted" />
             </div>
-            <Button onClick={handleSaveProfile} disabled={updateProfile.isPending}>
+            <Button data-testid="settings-save-profile" onClick={handleSaveProfile} disabled={updateProfile.isPending}>
               {updateProfile.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Kaydet
             </Button>
@@ -184,6 +184,7 @@ const SettingsPage = () => {
               <Label htmlFor="current-password">Mevcut Şifre</Label>
               <Input
                 id="current-password"
+                data-testid="settings-current-password"
                 type="password"
                 value={passwords.current}
                 onChange={(e) => setPasswords(prev => ({ ...prev, current: e.target.value }))}
@@ -193,6 +194,7 @@ const SettingsPage = () => {
               <Label htmlFor="new-password">Yeni Şifre</Label>
               <Input
                 id="new-password"
+                data-testid="settings-new-password"
                 type="password"
                 value={passwords.new}
                 onChange={(e) => setPasswords(prev => ({ ...prev, new: e.target.value }))}
@@ -202,12 +204,13 @@ const SettingsPage = () => {
               <Label htmlFor="confirm-password">Yeni Şifre (Tekrar)</Label>
               <Input
                 id="confirm-password"
+                data-testid="settings-confirm-password"
                 type="password"
                 value={passwords.confirm}
                 onChange={(e) => setPasswords(prev => ({ ...prev, confirm: e.target.value }))}
               />
             </div>
-            <Button onClick={handleChangePassword} disabled={changePassword.isPending}>
+            <Button data-testid="settings-change-password" onClick={handleChangePassword} disabled={changePassword.isPending}>
               {changePassword.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Şifreyi Güncelle
             </Button>
@@ -298,7 +301,7 @@ const SettingsPage = () => {
               />
             </div>
 
-            <Button onClick={handleSavePreferences} disabled={updatePreferences.isPending}>
+            <Button data-testid="settings-save-preferences" onClick={handleSavePreferences} disabled={updatePreferences.isPending}>
               {updatePreferences.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Tercihleri Kaydet
             </Button>

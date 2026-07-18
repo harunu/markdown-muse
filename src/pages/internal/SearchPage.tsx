@@ -367,7 +367,7 @@ const SearchPage = () => {
                   value={filters.city}
                   onValueChange={(value) => setFilters(prev => ({ ...prev, city: value, district: undefined }))}
                 >
-                  <SelectTrigger data-testid="filter-city">
+                  <SelectTrigger data-testid="search-filter-city">
                     <SelectValue placeholder="Şehir seçin" />
                   </SelectTrigger>
                   <SelectContent>
@@ -667,6 +667,7 @@ const SearchPage = () => {
                             <Button
                               variant="ghost"
                               size="icon"
+                              data-testid="favorite-toggle"
                               className="shrink-0"
                               onClick={() => toggleFavorite(listing.id)}
                             >
@@ -688,7 +689,7 @@ const SearchPage = () => {
                                 <span>{listing.building_age} yaşında</span>
                               </>
                             )}
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" data-testid="listing-type-badge" className="text-xs">
                               {listing.listing_type === "sale" ? "Satılık" : "Kiralık"}
                             </Badge>
                           </div>

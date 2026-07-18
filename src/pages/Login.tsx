@@ -137,6 +137,7 @@ const Login = () => {
 
             <Button
               type="submit"
+              data-testid="login-submit"
               className="w-full"
               size="lg"
               disabled={isLoading}

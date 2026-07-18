@@ -1,58 +1,61 @@
 import { test, expect } from '@playwright/test';
-
-async function injectAuthToken(page: import('@playwright/test').Page) {
-  await page.addInitScript(`
-    window.__PLAYWRIGHT_AUTH_USER = {
-      id: 1,
-      full_name: 'Admin',
-      email: 'admin@example.com',
-      role: 'super_admin',
-      preferences: {}
-    };
-  `);
-}
+import { loginAs } from './helpers/auth';
 
 test.describe('Search Page', () => {
   test.beforeEach(async ({ page }) => {
-    await injectAuthToken(page);
+    await loginAs(page, 'professional');
     await page.goto('/search');
     await page.waitForLoadState('networkidle');
   });
 
-  test('search page loads with search input', async ({ page }) => {
+  test('search inputs and filters are visible', async ({ page }) => {
     await expect(page.locator('[data-testid="semantic-search-input"]')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="search-button"]')).toBeVisible();
+    await expect(page.locator('[data-testid="search-filter-city"]')).toBeVisible();
   });
 
-  test('search button is present', async ({ page }) => {
-    await expect(page.locator('[data-testid="search-button"]')).toBeVisible({ timeout: 15000 });
+  test('natural language search returns results', async ({ page }) => {
+    await page.locator('[data-testid="semantic-search-input"]').fill("Bodrum'da 2+1 arıyorum");
+    await page.locator('[data-testid="search-button"]').click();
+    const cards = page.locator('[data-testid="listing-card"]');
+    await expect(cards.first()).toBeVisible({ timeout: 15000 });
+    expect(await cards.count()).toBeGreaterThan(0);
+    await expect(cards.first()).toContainText('Bodrum');
   });
 
-  test('city filter is present', async ({ page }) => {
-    await expect(page.locator('[data-testid="filter-city"]')).toBeVisible({ timeout: 15000 });
+  test('listing type badge shows Turkish label, not raw key', async ({ page }) => {
+    await page.locator('[data-testid="semantic-search-input"]').fill('Bodrum');
+    await page.locator('[data-testid="search-button"]').click();
+    const badge = page.locator('[data-testid="listing-type-badge"]').first();
+    await expect(badge).toBeVisible({ timeout: 15000 });
+    const text = (await badge.innerText()).trim();
+    expect(['Satılık', 'Kiralık']).toContain(text);
+    const body = await page.locator('body').innerText();
+    expect(body).not.toContain('SALE');
+    expect(body).not.toContain('RENT');
   });
 
-  test('empty state is shown before any search', async ({ page }) => {
+  test('search with no matches shows empty state, not a crash', async ({ page }) => {
+    await page.locator('[data-testid="semantic-search-input"]').fill('xyzqwe nonexistent listing');
+    await page.locator('[data-testid="search-button"]').click();
     const noResults = page.locator('[data-testid="no-results"]');
     const results = page.locator('[data-testid="search-results"]');
-    const noResultsVisible = await noResults.isVisible();
-    const resultsVisible = await results.isVisible();
-    expect(noResultsVisible || resultsVisible || true).toBe(true);
+    await expect(noResults.or(results).first()).toBeVisible({ timeout: 15000 });
+    const body = await page.locator('body').innerText();
+    expect(body).not.toContain('undefined');
+    expect(body).not.toContain('[object Object]');
   });
 
-  test('performing a search shows results or empty state', async ({ page }) => {
-    await page.locator('[data-testid="semantic-search-input"]').fill('istanbul daire');
+  test('sort dropdown changes order without breaking results', async ({ page }) => {
+    await page.locator('[data-testid="semantic-search-input"]').fill('Bodrum');
     await page.locator('[data-testid="search-button"]').click();
-    await page.waitForTimeout(2000);
-    const hasNoResults = await page.locator('[data-testid="no-results"]').isVisible();
-    const hasResults = await page.locator('[data-testid="search-results"]').isVisible();
-    expect(hasNoResults || hasResults).toBe(true);
-  });
+    const cards = page.locator('[data-testid="listing-card"]');
+    await expect(cards.first()).toBeVisible({ timeout: 15000 });
 
-  test('listing cards are shown when results exist', async ({ page }) => {
-    await page.locator('[data-testid="semantic-search-input"]').fill('istanbul');
-    await page.locator('[data-testid="search-button"]').click();
-    await page.waitForTimeout(2000);
-    const count = await page.locator('[data-testid="listing-card"]').count();
-    expect(count).toBeGreaterThanOrEqual(0);
+    // Find the sort select (combobox showing a sort label) and choose price ascending
+    const sortTrigger = page.getByRole('combobox').filter({ hasText: /fiyat|yeni|sırala/i }).first();
+    await sortTrigger.click();
+    await page.getByRole('option', { name: /fiyat \(artan\)/i }).click();
+    await expect(cards.first()).toBeVisible({ timeout: 15000 });
   });
 });

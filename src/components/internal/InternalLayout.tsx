@@ -59,7 +59,7 @@ const InternalLayout = () => {
       <Link
         to={item.path}
         onClick={onClick}
-        data-testid={item.path === "/search" ? "nav-search" : undefined}
+        data-testid={`nav-${item.path.slice(1)}`}
         className={cn(
           "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
           isActive

@@ -147,7 +147,7 @@ const Dashboard = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
             >
-              <Card className={`hover:shadow-card transition-all border-l-4 ${stat.borderColor}`}>
+              <Card data-testid="dashboard-stat-card" className={`hover:shadow-card transition-all border-l-4 ${stat.borderColor}`}>
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between">
                     <div>

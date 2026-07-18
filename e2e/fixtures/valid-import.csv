@@ -1,3 +1,4 @@
-title,description,city,district,price,listing_type,property_type
-Test Listing 1,Nice apartment,Istanbul,Kadikoy,12500000,sale,apartment
-Test Listing 2,Office space,Istanbul,Besiktas,25000000,sale,commercial
+title,listing_type,property_type,city,district,price,neighborhood,area,room_count
+E2E Test Bodrum Apartment,sale,apartment,mugla,Bodrum,7500000,Yalıkavak,95,2+1
+E2E Test Marmaris Villa,sale,villa,mugla,Marmaris,15500000,İçmeler,240,4+1
+E2E Test Alanya Rental,rent,apartment,antalya,Alanya,32000,Oba,110,3+1
