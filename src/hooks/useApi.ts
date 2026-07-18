@@ -155,7 +155,7 @@ export const useAddFavorite = () => {
 
   return useMutation({
     mutationFn: async (propertyId: number) => {
-      const response = await apiClient.post('/favorites', { property_id: propertyId });
+      const response = await apiClient.post('/favorites/', { property_id: propertyId });
       return response.data;
     },
     onSuccess: () => {

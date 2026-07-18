@@ -42,6 +42,15 @@ export const clearTokens = () => {
   sessionStorage.removeItem(REFRESH_TOKEN_KEY);
 };
 
+// Correlation ID generator — crypto.randomUUID is unavailable in insecure
+// contexts (plain http on a non-localhost host), so fall back gracefully
+const generateCorrelationId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+};
+
 // Request interceptor - attach auth token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -51,7 +60,7 @@ apiClient.interceptors.request.use(
     }
 
     // Add correlation ID for traceability
-    config.headers['X-Correlation-ID'] = crypto.randomUUID();
+    config.headers['X-Correlation-ID'] = generateCorrelationId();
 
     return config;
   },
@@ -84,8 +93,14 @@ apiClient.interceptors.response.use(
   async (error: AxiosError<ApiResponse<unknown>>) => {
     const originalRequest = error.config;
 
+    // A 401 from login/refresh means bad credentials or an expired session —
+    // surface it to the caller instead of triggering the refresh flow
+    const isAuthEndpoint =
+      originalRequest?.url?.includes('/auth/login') ||
+      originalRequest?.url?.includes('/auth/refresh');
+
     // Handle 401 - attempt token refresh
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
       if (isRefreshing) {
         // Wait for the refresh to complete
         return new Promise((resolve, reject) => {

@@ -41,6 +41,7 @@ const FavoritesPage = () => {
   const { toast } = useToast();
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [editingNotes, setEditingNotes] = useState<Record<number, string>>({});
+  const [noteDialogId, setNoteDialogId] = useState<number | null>(null);
 
   const { data: favorites, isLoading, error } = useFavorites();
   const removeMutation = useRemoveFavorite();
@@ -67,6 +68,7 @@ const FavoritesPage = () => {
     try {
       await updateNoteMutation.mutateAsync({ propertyId, note });
       toast({ title: "Not kaydedildi." });
+      setNoteDialogId(null);
     } catch {
       toast({ title: "Not kaydedilemedi.", variant: "destructive" });
     }
@@ -149,7 +151,7 @@ const FavoritesPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
               >
-                <Card className={`group hover:shadow-card transition-all ${
+                <Card data-testid="favorite-card" className={`group hover:shadow-card transition-all ${
                   selectedIds.includes(item.property.id) ? "ring-2 ring-primary" : ""
                 }`}>
                   <CardContent className="p-0">
@@ -168,6 +170,7 @@ const FavoritesPage = () => {
                       <Button
                         variant="ghost"
                         size="icon"
+                        data-testid="favorite-remove"
                         className="absolute top-2 right-2 bg-white/90 hover:bg-white text-warning"
                         onClick={() => handleRemove(item.property.id)}
                         disabled={removeMutation.isPending}
@@ -201,15 +204,21 @@ const FavoritesPage = () => {
 
                       {/* Note */}
                       <div className="pt-2 border-t">
-                        <Dialog onOpenChange={(open) => {
-                          if (open) {
-                            setEditingNotes(prev => ({ ...prev, [item.property.id]: item.note }));
-                          }
-                        }}>
+                        <Dialog
+                          open={noteDialogId === item.property.id}
+                          onOpenChange={(open) => {
+                            if (open) {
+                              setEditingNotes(prev => ({ ...prev, [item.property.id]: item.note }));
+                              setNoteDialogId(item.property.id);
+                            } else {
+                              setNoteDialogId(null);
+                            }
+                          }}>
                           <DialogTrigger asChild>
                             <Button
                               variant="ghost"
                               size="sm"
+                              data-testid="favorite-note-button"
                               className={`w-full justify-start gap-2 ${
                                 item.note ? "text-foreground" : "text-muted-foreground"
                               }`}
@@ -230,6 +239,7 @@ const FavoritesPage = () => {
                                 </p>
                               </div>
                               <Textarea
+                                data-testid="favorite-note-input"
                                 placeholder="Notunuzu yazın..."
                                 value={noteValue}
                                 onChange={(e) => setEditingNotes(prev => ({
@@ -240,6 +250,7 @@ const FavoritesPage = () => {
                               />
                               <Button
                                 className="w-full"
+                                data-testid="favorite-note-save"
                                 onClick={() => handleSaveNote(item.property.id)}
                                 disabled={updateNoteMutation.isPending}
                               >
